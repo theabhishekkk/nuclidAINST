@@ -6,7 +6,7 @@
   "description": "Browser-only gamma spectroscopy pipeline (TypeScript + Vite) -- v4 clean re-architecture.",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
