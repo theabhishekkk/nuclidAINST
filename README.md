@@ -14,7 +14,7 @@
 
 **Nuclid ** takes a raw spectrum from a scintillation detector and walks it toward an identified radionuclide—showing every step a reviewer would check. **Nothing is installed, and your data never leaves your machine.**
 
-*v4 is a clean re-architecture.* It brings the same science and philosophy as v3 but rebuilt as a small set of pure stage functions behind general, element-agnostic interfaces. 
+It brings the same science and philosophy as v3 but rebuilt as a small set of pure stage functions behind general, element-agnostic interfaces. 
 
 > **🎯 North Star:** From raw spectrum to identified nuclide — *every step shown.*  
 > **⚠️ Note:** This project is under active development; downstream numbers are not yet validated.
