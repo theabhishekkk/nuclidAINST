@@ -7,4 +7,4 @@ if (!root) throw new Error('Missing #app mount point.');
 mountApp(root);
 
 // Initialize Vercel Web Analytics
-inject();
+inject({ mode: import.meta.env.MODE === 'development' ? 'development' : 'production' });
