@@ -1,5 +1,5 @@
 <div align="center">
-  <h1>☢️ Nuclid v4</h1>
+  <h1>☢️ Nuclid</h1>
   <p><b>A browser-only gamma-ray spectroscopy app built with TypeScript + Vite.</b></p>
   <p>
     <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
