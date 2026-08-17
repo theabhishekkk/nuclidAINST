@@ -1,59 +1,28 @@
-# Nuclid v4
+<div align="center">
+  <h1>☢️ Nuclid v4</h1>
+  <p><b>A browser-only gamma-ray spectroscopy app built with TypeScript + Vite.</b></p>
+  <p>
+    <img src="https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript" />
+    <img src="https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite" />
+    <img src="https://img.shields.io/badge/Vercel-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Vercel" />
+  </p>
+</div>
 
-A **browser-only gamma-ray spectroscopy app** (TypeScript + Vite). It takes a raw
-spectrum from a scintillation detector and walks it toward an identified
-radionuclide -- showing every step a reviewer would check. Nothing is installed and
-data never leaves the machine.
+---
 
-> **v4 is a clean re-architecture.** Same science and philosophy as v3, rebuilt as a
-> small set of pure stage functions behind general, element-agnostic interfaces. It
-> is **under active development**; downstream numbers are not yet validated.
+## 🌟 Overview
 
-**North Star:** from raw spectrum to identified nuclide -- every step shown.
+**Nuclid v4** takes a raw spectrum from a scintillation detector and walks it toward an identified radionuclide—showing every step a reviewer would check. **Nothing is installed, and your data never leaves your machine.**
 
-## The pipeline
+*v4 is a clean re-architecture.* It brings the same science and philosophy as v3 but rebuilt as a small set of pure stage functions behind general, element-agnostic interfaces. 
 
-```
-load -> condition -> detect -> fit -> validate -> calibrate -> identify -> quantify -> report
-```
+> **🎯 North Star:** From raw spectrum to identified nuclide — *every step shown.*  
+> **⚠️ Note:** This project is under active development; downstream numbers are not yet validated.
 
-| Stage | Status in v4 | What it does |
-|-------|--------------|--------------|
-| load | built | Fail-loud parse of .TKA/.CSV into a trusted `Spectrum` |
-| condition | built | SNIP background estimate + smoothing |
-| detect | built | Local-maxima peak candidates above threshold |
-| fit | stub (fails loud) | Gaussian fit -> centroid, FWHM, area, chi-square |
-| validate | stub (fails loud) | Peak-quality gate |
-| calibrate | math built, awaits anchors | Channel->energy least-squares fit |
-| identify | math built, awaits energies | Match energies to the nuclide library |
-| quantify | stub (fails loud) | Activity `A = N_net / (eff * p_gamma * t_live)` |
-| report | built | Assemble a traced `AnalysisReport` |
+---
 
-Stubbed stages **throw** rather than fabricate a result -- see
-[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the philosophy.
+## ⚙️ The Pipeline
 
-## Run it
-
-```bash
-npm install
-npm run dev        # start the dev server
-npm test           # run the unit tests (Vitest)
-npm run typecheck  # tsc --noEmit
-npm run build      # typecheck + production build
-```
-
-Open the dev URL, then **Load synthetic demo** (no file needed) or drop in a real
-`.TKA`/`.CSV` spectrum.
-
-## Layout
-
-```
-src/
-  domain/      types.ts, errors.ts   -- shared, element-agnostic contracts
-  io/          parse.ts              -- fail-loud file parsing
-  pipeline/    one file per stage + orchestrator.ts + index.ts
-  data/        nuclides.ts (library), synthetic.ts (demo/test data)
-  viz/         spectrumChart.ts      -- dependency-free canvas plot
-  ui/          app.ts                -- minimal UI shell
-tests/         parse.test.ts, pipeline.test.ts
-```
+```mermaid
+graph LR
+A[Load] --> B[Condition] --> C[Detect] --> D[Fit] --> E[Validate] --> F[Calibrate] --> G[Identify] --> H[Quantify] --> I[Report]
