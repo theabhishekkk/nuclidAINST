@@ -1,0 +1,42 @@
+# Dependencies & build output
+node_modules/
+dist/
+.vite/
+
+# Local / editor / OS
+*.local
+.DS_Store
+.vscode/
+.idea/
+
+# Cowork / Claude local settings
+.claude/
+
+# Office temp lock files (e.g. ~$Nuclid_v4_Roadmap.docx)
+~$*
+
+# Internal / handoff / planning docs - RULE: anything in _internal/ stays out of the repo
+_internal/
+
+# Python bytecode (from tests/fixtures/reference/*.py capture scripts)
+__pycache__/
+*.pyc
+
+# Reference Python application (read-only port source, kept local for Claude to
+# reference during the TS port). RULE: never tracked — local working copy only.
+# This also covers reference/v3/ — the imported Version 3 codebase (zip + extracted
+# source), kept local for cross-version comparison only. RULE: never tracked/pushed.
+reference/
+
+# InterSpec (Sandia National Labs) full source clone, kept local for cross-project
+# comparison/reference only. RULE: never tracked — local working copy only.
+InterSpec/
+
+# Credentials - RULE: real secrets stay out of the repo. Only README and
+# *.example.* templates are tracked; everything else in credentials/ is ignored.
+credentials/*
+!credentials/README.md
+!credentials/*.example.*
+
+# Local dev launcher - RULE: personal convenience script, never tracked.
+start.bat

@@ -1,0 +1,28 @@
+# Normalize all text files to LF in the repository.
+# Prevents CRLF/LF churn between Windows checkouts and the Cowork mount.
+* text=auto eol=lf
+
+# Explicit text types (defensive; covered by text=auto but pinned for clarity)
+*.ts    text eol=lf
+*.tsx   text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.md    text eol=lf
+*.csv   text eol=lf
+*.py    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+
+# Binary assets — never normalize, never diff as text.
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.pdf   binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.TKA   binary

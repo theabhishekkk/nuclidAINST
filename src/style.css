@@ -1,0 +1,2546 @@
+/*
+ * Nuclid -- Lab Notebook visual foundation (M4 A1a).
+ * Tokens are the DESIGN.md S2 block verbatim; no hex is hardcoded outside :root.
+ * Flat, light-only, one teal accent (amber = warnings only). DESIGN.md is the
+ * source of truth -- do not add ad-hoc colors here.
+ */
+:root {
+  /* Surfaces (paper) */
+  --bg:            #FBFAF6;  /* app background (paper) */
+  --surface:       #FFFFFF;  /* plot area, cards */
+  --surface-sunk:  #F6F4ED;  /* toolbar, subtle wells */
+
+  /* Ink (text) */
+  --text:          #2C2C2A;  /* primary ink */
+  --muted:         #6B6A63;  /* secondary / labels */
+  --faint:         #9A988F;  /* hints, axis ticks */
+
+  /* Lines */
+  --border:        #E7E3D8;  /* default hairline */
+  --border-strong: #D8D3C6;  /* control borders, emphasis */
+  --grid:          #EFEBE0;  /* plot gridlines */
+
+  /* Accent (teal = signal/result) */
+  --accent:        #0F6E56;  /* primary accent, plot curve */
+  --accent-weak:   #E1F5EE;  /* accent fill / chips */
+  --accent-ink:    #04342C;  /* text on --accent-weak */
+  --accent-fill:   rgba(15, 110, 86, 0.10); /* area under curve */
+
+  /* Warning (amber = the only non-teal accent; warnings only) */
+  --warn-bg:       #FAF3E2;
+  --warn-border:   #E8D8AE;
+  --warn-text:     #7A5B12;
+
+  /* Type */
+  --font-sans:  "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono:  ui-monospace, "SFMono-Regular", "Menlo", monospace; /* only for raw file/text dumps */
+
+  /* Radius */
+  --radius-control: 6px;
+  --radius-card:    8px;
+  --radius-window:  10px;
+
+  /* Spacing scale (use these, not arbitrary px) */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 16px; --space-5: 20px; --space-6: 24px;
+}
+
+* { box-sizing: border-box; }
+
+/* Honor the `hidden` attribute even on elements with a display rule below
+ * (e.g. .chart{display:block}, .empty-state{display:flex}) so the canvas /
+ * empty-state toggle actually hides. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* --- App shell / header (S5) --------------------------------------------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.brand { display: flex; align-items: center; gap: var(--space-2); }
+/* V3 inline lockup; 30px height baseline-aligns the mark with the nav buttons. */
+.brand-logo { height: 30px; width: auto; display: block; }
+
+/* Persistent UNDER DEVELOPMENT chip (amber; never dismissible -- S5 RISK-01) */
+.dev-flag {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+/* --- Layout -------------------------------------------------------------- */
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
+  align-items: start;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+/* --- Controls / buttons (one button system, DR-4 / S5) ------------------- */
+.controls { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); flex-wrap: wrap; }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: 5px 11px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.btn:hover { background: var(--surface-sunk); }
+.btn-primary { background: var(--accent); color: #FBFAF6; border-color: var(--accent); }
+.btn-primary:hover { background: #0C5A47; }
+.btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+.btn-ghost:hover { background: var(--surface-sunk); }
+.select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: 5px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.select option { background: var(--surface); color: var(--text); }
+
+/* Linear/Log: the existing checkbox toggle, restyled (segmented control is A1b). */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.toggle input { accent-color: var(--accent); }
+
+/* Segmented control (S5) -- ready for A1b wiring. */
+.segmented { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius-control); overflow: hidden; }
+.segmented .seg { padding: 4px 11px; font-size: 12px; background: var(--surface); color: var(--text); border: none; border-left: 1px solid var(--border-strong); cursor: pointer; }
+.segmented .seg:first-child { border-left: none; }
+.segmented .seg.active { background: var(--accent); color: #FBFAF6; }
+
+/* Overlay toggles (Baseline / Smoothed) -- ready for A1b. */
+.overlays { display: inline-flex; align-items: center; gap: 6px; }
+.overlays .ov-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: var(--muted); }
+.ov-toggle { background: var(--surface); border: 1px solid var(--border-strong); color: var(--text); border-radius: var(--radius-control); padding: 4px 9px; font-size: 12px; cursor: pointer; }
+.ov-toggle.active { background: var(--accent-weak); border-color: var(--accent); color: var(--accent-ink); }
+.ov-toggle:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* --- Error / disclaimer banners ------------------------------------------ */
+.error {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: var(--radius-card);
+  padding: 10px 12px;
+  margin-bottom: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+}
+/* Unvalidated-calibration disclaimer (S5) -- ready for A1c/A1d. */
+.disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  border-radius: var(--radius-card);
+  padding: 8px 11px;
+  font-size: 12.5px;
+  margin-bottom: var(--space-3);
+}
+
+/* --- Plot panel (S4) ----------------------------------------------------- */
+.chart {
+  width: 100%;
+  height: 380px;
+  display: block;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+}
+/* Zoom/pan affordance: grab cursor + claim wheel/touch gestures from the page.
+   Shared by the main spectrum plot and the Calibrate QC chart (Batch C: ONE
+   reusable interaction layer mounts on both). */
+.chart, .br-chart, .inspector-chart { cursor: grab; touch-action: none; }
+.chart.panning, .br-chart.panning, .inspector-chart.panning { cursor: grabbing; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; margin-top: var(--space-2); color: var(--muted); font-size: 12.5px; }
+.legend .key { display: inline-flex; align-items: center; gap: 6px; }
+.legend .key i { width: 12px; height: 3px; border-radius: 2px; display: inline-block; }
+
+/* Empty state / dropzone (S5) */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  text-align: center;
+}
+.empty-state .es-title { font-family: var(--font-serif); font-weight: 500; font-size: 18px; color: var(--text); }
+.empty-state .es-sub { color: var(--muted); font-size: 12.5px; }
+.empty-state .es-note { color: var(--faint); font-size: 11px; }
+.dropzone-over { outline: 2px dashed var(--accent); outline-offset: -6px; background: var(--accent-weak); }
+
+/* --- Right column / panels (S5) ------------------------------------------ */
+.right { display: flex; flex-direction: column; gap: var(--space-3); }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 12px 14px; }
+.panel h3 {
+  margin: 0 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Stat rows (S5): label muted left, value ink/tabular right. */
+.meta { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0; }
+.meta dt { color: var(--muted); padding: 3px 0; }
+.meta dd { margin: 0; text-align: right; color: var(--text); font-variant-numeric: tabular-nums; padding: 3px 0; }
+
+/* Validation stepper (S5): clean = neutral (no "all clear"); amber = warnings only. */
+.trace { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.trace li {
+  display: grid;
+  grid-template-columns: 76px 56px 1fr;
+  gap: 8px;
+  align-items: baseline;
+  padding: 5px 8px;
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  font-size: 12.5px;
+}
+.trace .t-stage { font-weight: 500; color: var(--text); }
+.trace .t-status { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.trace .t-note { color: var(--muted); }
+.trace-ok .t-status { color: var(--muted); }
+.trace-skipped .t-status { color: var(--faint); }
+.trace-error .t-status { color: var(--warn-text); }
+/* per-stage flags: caveat amber (warning), note neutral grey (info) */
+.flag-caveat { color: var(--warn-text); }
+.flag-note { color: var(--muted); }
+
+/* Peaks table (S3): tabular numbers, hairline rows. */
+.peaks { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.peaks th { text-align: left; color: var(--muted); font-weight: 500; font-size: 11px; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+.peaks td { padding: 4px 6px; border-bottom: 1px solid var(--border); color: var(--text); }
+.muted { color: var(--muted); }
+
+/* Result card (S5) -- styled now, populated in A1d. */
+.result-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: 10px 11px; }
+.result-card .rc-name { font-family: var(--font-serif); font-weight: 600; font-size: 18px; color: var(--accent); }
+.result-card .chip { display: inline-block; background: var(--accent-weak); color: var(--accent-ink); border-radius: var(--radius-control); padding: 1px 8px; font-size: 11px; margin-left: 6px; }
+.result-card .rc-stats { margin-top: 6px; }
+.confidence { font-variant-numeric: tabular-nums; }
+.confidence.strong { color: var(--accent-ink); }
+.confidence.tentative { color: var(--warn-text); }
+.confidence.weak { color: var(--muted); }
+
+/* --- Focus rings (S5): visible teal ring on every interactive element ----- */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+.btn:focus-visible,
+.seg:focus-visible,
+.ov-toggle:focus-visible,
+.nav-btn:focus-visible,
+.help-btn:focus-visible,
+.brand:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+/* ========================================================================== */
+/* A1b -- app shell + navigation                                              */
+/* ========================================================================== */
+
+/* DESIGN.md S1 sanctioned exception: the roadmap 4-hue status ramp (scoped to
+ * the Project-status atoms only; does NOT relax the one-accent rule elsewhere). */
+:root {
+  --road-done:  #1B5E3A; /* green  -- done */
+  --road-now:   #0F6E56; /* teal   -- in progress (the one sanctioned glow) */
+  --road-next:  #3949AB; /* indigo -- next */
+  --road-later: #9A988F; /* grey   -- later */
+}
+
+/* Toolbar (DR-7): brand (Home, DR-3 wordmark exception) + platform-nav only. */
+.brand { background: none; border: none; padding: 0; cursor: pointer; color: inherit; }
+.brand:hover .brand-logo { opacity: 0.85; }
+.toolbar-nav { display: inline-flex; gap: var(--space-2); }
+.nav-btn {
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: var(--radius-control);
+  padding: 5px 11px;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.nav-btn:hover { background: var(--surface-sunk); }
+/* DEBT-31: compact "?" graph-help trigger -- square, sits at the end of the nav. */
+.nav-help { padding: 5px 9px; font-weight: 600; line-height: 1; }
+
+/* Persistent honesty banner (RISK-01) -- kept OUT of the DR-7 toolbar. */
+.dev-banner {
+  background: var(--warn-bg);
+  border-bottom: 1px solid var(--warn-border);
+  color: var(--warn-text);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  padding: 4px var(--space-5);
+  text-align: center;
+}
+
+/* Shell + pages (DR-5 one layout). */
+.shell { padding: var(--space-4) var(--space-5); }
+.page-actions { margin-bottom: var(--space-3); }
+.page-title { font-family: var(--font-serif); font-weight: 600; font-size: 22px; margin: 0 0 var(--space-4); }
+.page-h2 { font-family: var(--font-serif); font-weight: 500; font-size: 18px; margin: var(--space-4) 0 var(--space-2); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-4); }
+.page { max-width: 760px; }
+.page p { text-align: justify; hyphens: auto; margin: 0 0 var(--space-3); }
+.page-list { margin: 0; padding-left: var(--space-5); }
+.page-list li { margin-bottom: var(--space-2); text-align: justify; hyphens: auto; }
+.page-note { color: var(--muted); }
+
+/* Under-construction notice (Quantification and any future placeholder page).
+   Rendered inside Peak Finder's `.step-main`; `.uc-center` fills the scrolling column
+   and centers the card both axes, so the banner sits in the middle of the page. */
+.uc-center {
+  flex: 1; min-height: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: var(--space-5) 0;
+}
+.uc-card { max-width: 560px; }
+.uc-card p { text-align: center; }
+.uc-title { font-family: var(--font-serif); font-weight: 600; font-size: 28px; margin: 0 0 var(--space-3); }
+.uc-card .page-h2 { text-align: center; }
+.uc-badge {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  color: var(--road-now); font-size: 12px; font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin: 0 0 var(--space-3);
+}
+.uc-dot {
+  width: 10px; height: 10px; border-radius: 999px;
+  background: var(--road-now); box-shadow: 0 0 0 3px var(--accent-weak);
+}
+
+/* Landing hero (centered is intentional -- DR-1.2). */
+.landing { max-width: 620px; margin: 8vh auto 0; text-align: center; }
+.landing-title { font-family: var(--font-serif); font-weight: 600; font-size: 40px; margin: 0 0 var(--space-3); }
+.landing-lede { color: var(--muted); font-size: 14px; margin: 0 auto var(--space-5); max-width: 48ch; }
+.landing-actions { display: inline-flex; flex-wrap: wrap; justify-content: center; gap: var(--space-3); margin-bottom: var(--space-4); }
+.landing-note { color: var(--faint); font-size: 12px; max-width: 52ch; margin: 0 auto; }
+
+/* Mode page "next step" affordance. */
+.next-step p { color: var(--muted); font-size: 12.5px; margin: 0; text-align: justify; hyphens: auto; }
+
+/* Plot wrapper -- positioning host for the cursor chip, dropzone, and help. */
+.plot-wrap { position: relative; }
+.help-btn {
+  position: absolute; top: 8px; right: 8px;
+  width: 22px; height: 22px; line-height: 1;
+  background: var(--surface); border: 1px solid var(--border-strong); color: var(--muted);
+  border-radius: 999px; cursor: pointer; font-size: 13px;
+}
+.help-btn:hover { background: var(--surface-sunk); color: var(--text); }
+.cursor-chip {
+  position: absolute; top: 8px; left: 8px;
+  display: inline-flex; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-control); padding: 3px 8px;
+  font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+.cursor-chip b { color: var(--text); font-weight: 500; }
+
+/* Project-status roadmap (4-hue ramp). */
+.roadmap { list-style: none; margin: 0 0 var(--space-4); padding: 0; }
+.road-row { display: grid; grid-template-columns: 16px 36px 1fr auto; gap: var(--space-2); align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.road-id { color: var(--muted); font-variant-numeric: tabular-nums; }
+.road-name { color: var(--text); }
+.road-dot { width: 10px; height: 10px; border-radius: 999px; display: inline-block; }
+.road-status { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; }
+.road-done { color: var(--road-done); }
+.road-dot.road-done { background: var(--road-done); }
+.road-next { color: var(--road-next); }
+.road-dot.road-next { background: var(--road-next); }
+.road-later { color: var(--road-later); }
+.road-dot.road-later { background: var(--road-later); }
+.road-now { color: var(--road-now); }
+.road-dot.road-now { background: var(--road-now); box-shadow: 0 0 0 3px var(--accent-weak); }
+.road-legend { display: flex; gap: 14px; color: var(--muted); font-size: 12px; }
+.road-legend .key { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Help dialog (DR-8). */
+.modal-overlay { position: fixed; inset: 0; background: rgba(44, 44, 42, 0.35); display: flex; align-items: center; justify-content: center; z-index: 50; }
+.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-window); padding: var(--space-5); max-width: 560px; width: calc(100% - 40px); }
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-3); }
+.modal-title { font-family: var(--font-serif); font-weight: 600; font-size: 18px; margin: 0; }
+.help-list { margin: 0; padding-left: var(--space-5); }
+.help-list li { margin-bottom: var(--space-2); text-align: justify; hyphens: auto; }
+
+/* ========================================================================== */
+/* A1c -- calibrate walkthrough                                               */
+/* ========================================================================== */
+
+/* Calibration panel + declared-source list. */
+.src-name { font-weight: 500; color: var(--text); }
+.src-meta { color: var(--muted); font-size: 12px; flex: 1; }
+.src-remove { padding: 2px 8px; font-size: 11.5px; }
+
+/* Built-calibration result card. */
+.seg:disabled { opacity: 0.5; cursor: not-allowed; }
+.cal-name { flex: 1; min-width: 140px; font-family: var(--font-sans); }
+.saved-ok { color: var(--accent-ink); font-size: 12.5px; margin: var(--space-2) 0 0; }
+
+/* ========================================================================== */
+/* A1d -- identify walkthrough                                                */
+/* ========================================================================== */
+
+.ident-result, .no-cal, .no-match { margin-top: var(--space-3); }
+
+/* Result-card head: serif nuclide name + identified chip + verdict pill. */
+.result-card .rc-head { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; margin-top: var(--space-2); }
+.result-card .confidence {
+  margin-left: auto; font-size: 12px; font-weight: 600; letter-spacing: 0.04em;
+  padding: 1px 8px; border-radius: var(--radius-control); border: 1px solid var(--border);
+}
+.result-card .confidence.strong { background: var(--accent-weak); border-color: var(--accent); color: var(--accent-ink); }
+.result-card .confidence.tentative { background: var(--warn-bg); border-color: var(--warn-border); color: var(--warn-text); }
+.result-card .confidence.weak { background: var(--surface-sunk); color: var(--muted); }
+
+.rc-noid { font-family: var(--font-serif); font-size: 16px; color: var(--text); margin: var(--space-2) 0; }
+
+/* Trustworthiness caveats (amber list under the top match). */
+.caveats { list-style: none; margin: var(--space-2) 0 0; padding: 0; }
+.caveats .flag-caveat { font-size: 12px; padding: 3px 0; }
+
+/* Ranked candidate list with per-row overlay toggle. */
+.ranked-h { margin-top: var(--space-4); }
+.rank-list { list-style: none; margin: 0; padding: 0; }
+.rank-row {
+  display: flex; align-items: baseline; gap: var(--space-2);
+  padding: 5px 6px; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+.rank-row.rank-active { background: var(--accent-weak); border-radius: var(--radius-control); }
+.rank-i { color: var(--faint); font-size: 11px; min-width: 14px; }
+.rank-name { flex: 1; text-align: left; }
+.rank-score { color: var(--muted); }
+.btn-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 2px;
+}
+.btn-link:hover { color: var(--accent-ink); }
+.btn-link[aria-pressed='true'] { color: var(--accent-ink); font-weight: 600; }
+.ranked-note { font-size: 11px; margin: var(--space-2) 0 0; }
+
+/* ========================================================================== */
+/* WP-B -- staged calibrate walkthrough (DR-5 rail reuse; tokens + --space-*)  */
+/* ========================================================================== */
+
+/* The StageView shell: DR-5 rail (left) + plot/explanation/nav (right). It sits
+ * on the shared `.card` utility (applied in markup) and only adds layout here. */
+.stage-view {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+@media (max-width: 760px) { .stage-view { grid-template-columns: 1fr; } }
+
+/* Stages rail -- a DR-5 navigation list of clickable steps (DR-3 button chrome). */
+.stage-rail { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.stage-step {
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.stage-step:hover { background: var(--surface-sunk); }
+.stage-step.active { background: var(--accent-weak); border-color: var(--accent); color: var(--accent-ink); font-weight: 500; }
+.stage-step:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+
+/* Plot + explanation + nav column. */
+.stage-main { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.stage-canvas {
+  width: 100%; height: 440px; display: block;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card);
+}
+.stage-text { margin: 0; text-align: justify; hyphens: auto; color: var(--text); font-size: 12.5px; }
+.stage-caveat { margin: var(--space-2) 0 0; font-size: 12.5px; } /* .flag-caveat colours it amber */
+.stage-nav { display: flex; align-items: center; gap: var(--space-2); }
+.stage-pos { margin-left: var(--space-2); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* ========================================================================== */
+/* Calibrate -- Source Manager + Execution Stepper (execution-driven stepper)  */
+/* ========================================================================== */
+
+/* Stage A -- the Source Manager (single card that collects ALL inputs). */
+.source-manager { display: flex; flex-direction: column; gap: var(--space-4); }
+.sm-objective { margin: 0; color: var(--muted); font-size: 13px; text-align: justify; hyphens: auto; }
+.sm-loader { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.sm-dropzone {
+  border: 1px dashed var(--border-strong); border-radius: var(--radius-card);
+  background: var(--surface-sunk); color: var(--muted);
+  padding: var(--space-4); text-align: center; font-size: 12.5px;
+}
+.sm-dropzone.dropzone-over { outline: 2px dashed var(--accent); outline-offset: -6px; background: var(--accent-weak); color: var(--accent-ink); }
+/* Peak-Finder-scoped taller dropzone (Rev 3, §F): ~2.5-3x the base height, width
+   unchanged. Scoped to `body.mode-peak-finder` so Identify/Calibrate keep the base. */
+body.mode-peak-finder .sm-dropzone { min-height: 140px; display: flex; align-items: center; justify-content: center; }
+.sm-empty { margin: 0; }
+
+/* Batch list -- one row per added source. Two modes (Configure steps): `--load`
+   manages the dataset (filename + Remove); `--identity` assigns identities
+   (filename + identity + peaks + QC). */
+.batch-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.batch-row {
+  display: grid;
+  gap: var(--space-2); align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+}
+.batch-row--identity { grid-template-columns: minmax(0, 1fr) 200px auto auto; }
+.batch-row--load { grid-template-columns: minmax(0, 1fr) auto; }
+.br-file { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); font-size: 12.5px; }
+.br-identity { min-width: 0; }
+.br-peaks { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* PPI Phase 2: passive four-state card status. Minimal functional styling only,
+   reusing existing tokens -- the designed indicator is deferred (roadmap: visual
+   polish of the status indicators is out of scope). */
+.br-status--healthy { color: var(--muted); }
+.br-status--empty { color: var(--muted); font-style: italic; }
+.br-status--anomaly { color: var(--warn-text); }
+.br-status--failure { color: var(--warn-text); font-weight: 600; }
+.br-expand, .br-remove { padding: 3px 9px; font-size: 11.5px; }
+.br-qc { grid-column: 1 / -1; position: relative; }
+/* QC-chart interaction chrome (Batch C C1): a right-aligned Reset-view button above
+   the chart, and an absolutely-positioned cursor readout chip over the canvas. */
+.br-qc-head { display: flex; justify-content: flex-end; margin-top: var(--space-2); }
+.br-qc-reset { padding: 3px 9px; font-size: 11.5px; }
+.br-qc-chip, .insp-chip, .ident-chip {
+  position: absolute;
+  transform: translate(-50%, -140%);
+  padding: 2px 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  white-space: nowrap;
+  pointer-events: none;
+}
+.br-qc-chip[hidden], .insp-chip[hidden], .ident-chip[hidden] { display: none; }
+
+/* Peak Pipeline Inspector (Phase 1) -- additive, default-collapsed disclosure that
+   sits beside the QC chart. Full-width rows mirror the .br-qc pattern so the 4-col
+   control row above is untouched. */
+.br-summary {
+  grid-column: 1 / -1;
+  margin: 2px 0 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+/* (.br-inspect removed in PPI Phase 5 -- cards are status-only; the single
+   entry point lives in the Build toolbar.) */
+/* PPI Phase 3: the workspace's mount container is layout-transparent, so the
+   injected .inspector-panel participates in the batch-row grid exactly as the
+   former inline markup did (pixel parity). */
+.inspector-mount { display: contents; }
+/* PPI Phase 4a: recessed status-aware subject selector inside the workspace.
+   Minimal functional styling only (existing tokens; the four-state colors come
+   from the Phase-2 .br-status--* classes) -- designed polish is deferred. */
+.insp-selector { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 var(--space-3); }
+.insp-subject {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 3px 9px; font-size: 11.5px;
+  background: var(--surface-sunk); border: 1px solid var(--border);
+  border-radius: var(--radius-control); color: var(--muted); cursor: pointer;
+}
+.insp-subject.is-selected { background: var(--accent-weak); border-color: var(--accent); color: var(--accent-ink); }
+.insp-subject:disabled { cursor: default; opacity: 0.7; }
+.insp-subject-status { font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+/* PPI Phase 4b: the SELECTION STEP is the prominent variant of the same selector
+   (one control, two prominence levels) -- larger stacked items, same buttons and
+   status language. Minimal functional styling; designed polish deferred. */
+.insp-selector--prominent { flex-direction: column; align-items: stretch; gap: 8px; }
+.insp-selector--prominent .insp-subject {
+  justify-content: space-between;
+  padding: 10px 14px;
+  font-size: 13px;
+}
+.inspector-panel {
+  grid-column: 1 / -1;
+  margin-top: var(--space-2);
+  padding: var(--space-4, 16px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 10px);
+}
+.inspector-eyebrow { margin: 0 0 4px; }
+.inspector-title {
+  margin: 0 0 var(--space-3);
+  font-family: var(--font-serif, Georgia, 'Times New Roman', serif);
+  font-size: 18px;
+  font-weight: 600;
+  color: #0F6E56;
+}
+.inspector-funnel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12.5px;
+}
+.insp-step {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.insp-n { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text); }
+.insp-label { color: var(--muted); font-size: 11.5px; }
+.insp-arrow { color: var(--muted); }
+.inspector-chart {
+  width: 100%;
+  height: 240px;
+  display: block;
+  margin-top: var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card, 10px);
+}
+/* Inspector-chart interaction chrome (Batch C C2): a right-aligned Reset-view button
+   above the chart, and the shared cursor chip anchored over the canvas. Mirrors the
+   QC-chart chrome; the wrapper is the positioned ancestor for the chip. */
+.insp-chart-wrap { position: relative; }
+.insp-chart-head { display: flex; justify-content: flex-end; margin-top: var(--space-3); }
+.insp-reset { padding: 3px 9px; font-size: 11.5px; }
+
+/* Peak Pipeline Inspector stage rail (Phase 3b): a horizontal film-strip of the
+   pipeline stages, reusing the .build-step visual language. */
+.insp-rail {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+.insp-stage {
+  /* inherits .build-step (badge + label, hover, focus-visible, .is-active teal) */
+  user-select: none;
+}
+.insp-caption {
+  margin: var(--space-2) 0 0;
+  font-size: 12.5px;
+}
+.insp-legend {
+  margin: 4px 0 0;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.insp-detail {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  font-size: 12.5px;
+  color: var(--text);
+}
+.br-chart {
+  width: 100%; height: 240px; display: block; margin-top: var(--space-2);
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card);
+}
+/* Populated Load step: the file list doubles as a drop target (drag-to-add). */
+.sm-droparea { display: block; }
+.sm-droparea.dropzone-over { outline: 2px dashed var(--accent); outline-offset: 4px; border-radius: var(--radius-card); }
+@media (max-width: 640px) {
+  .batch-row--identity { grid-template-columns: 1fr 1fr; }
+  .batch-row--identity .br-file { grid-column: 1 / -1; }
+}
+
+/* Model selector row (3-way Linear / Quadratic / Auto; reuses .segmented, DR-4). */
+.sm-model { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.sm-model-label { text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; color: var(--muted); }
+.sm-model-hint { font-size: 11px; }
+
+/* Build row + readiness-gate message. */
+.sm-build { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.sm-gate { font-size: 12px; }
+
+/* Empty Calibration Library (Framer Scenario 3) -- two-panel workspace shown when
+   no calibration is saved. Tokens + existing fonts only (IBM Plex in the mock maps
+   to --font-serif / --font-sans). */
+.cal-library { display: flex; flex-direction: column; gap: var(--space-3); }
+.cal-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: var(--space-4); align-items: stretch; }
+@media (max-width: 860px) { .cal-workspace { grid-template-columns: 1fr; } }
+
+.cal-saved-panel, .cal-workflow-panel {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-window); padding: var(--space-4);
+}
+.cal-panel-title { font-family: var(--font-serif); font-weight: 600; font-size: 18px; margin: 0; }
+.cal-panel-sub { font-size: 12.5px; margin: 0; max-width: 52ch; }
+
+.cal-saved-head { display: flex; flex-direction: column; gap: var(--space-1); }
+.cal-empty-card {
+  flex: 1; min-height: 320px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-3); text-align: center;
+  background: var(--surface-sunk); border: 1px solid var(--border);
+  border-radius: var(--radius-window); padding: var(--space-6);
+}
+.cal-empty-title { font-family: var(--font-serif); font-weight: 600; font-size: 18px; margin: 0; color: var(--text); }
+.cal-empty-copy { font-size: 12.5px; margin: 0; max-width: 46ch; }
+.cal-empty-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: center; }
+
+.cal-workflow-head { display: flex; flex-direction: column; gap: var(--space-1); }
+/* Shared uppercase eyebrow (detail panel + empty-state workflow): green theme to
+   match the prototype (item 7); transform/spacing/size/weight unchanged. */
+.cal-eyebrow { text-transform: uppercase; letter-spacing: 0.05em; font-size: 11px; font-weight: 600; color: var(--accent); }
+.cal-workflow-intro {
+  background: var(--surface-sunk); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: var(--space-3);
+}
+.cal-intro-kicker { font-weight: 600; font-size: 12.5px; margin: 0 0 var(--space-1); color: var(--text); }
+.cal-intro-body { font-size: 12.5px; margin: 0; color: var(--text); }
+
+.cal-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-2); }
+.cal-step { display: flex; align-items: center; gap: var(--space-3); background: var(--surface-sunk); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-3); }
+.cal-step-num { flex-shrink: 0; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; background: var(--accent-weak); color: var(--accent-ink); font-size: 12.5px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cal-step-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cal-step-title { font-weight: 600; font-size: 12.5px; color: var(--text); }
+.cal-step-sub { font-size: 12px; }
+
+/* Build Calibration page structure (V3 architecture): a bordered title band, then a
+   minimal flex row (.build-body == V3 .step-body) laying out the rail nav and the panel
+   section as plain siblings -- no grid wrapper. Tokens only; reuses the accent palette
+   of the retired .bf-* header. */
+.build-titlebar { border: 1px solid var(--border); border-radius: var(--radius-card); background: var(--surface); padding: var(--space-3) var(--space-4); }
+.build-titlebar .page-title { margin: 0; }
+.build-body { display: flex; gap: var(--space-4); }
+
+/* The rail column is the V3 "step-film" strip: a fixed-basis (200px), bordered, sunk
+   column (border-right against the panel), quiet flat rows inside. Non-scrolling -- the
+   flex-shell contract and PARK-09 stand (no rail scroller). */
+.build-rail-col { flex: 0 0 200px; min-width: 0; display: flex; flex-direction: column; background: var(--surface-sunk); border-right: 1px solid var(--border); padding: var(--space-2); }
+/* Narrow viewports keep the V3 full-height film strip BESIDE the panel (just a narrower
+   rail-basis) rather than stacking it on top -- a stacked rail sizes to content and no
+   longer reaches the bottom edge. The flex row's default cross-axis stretch runs the
+   strip the full height at every width. MUST follow the base rule above so its
+   flex-basis is not re-set by the `flex: 0 0 200px` shorthand. */
+@media (max-width: 760px) { .build-rail-col { flex-basis: 168px; } }
+.build-rail { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.build-group { display: flex; flex-direction: column; gap: var(--space-1); }
+
+/* Group label -- a neutral gray uppercase section-header eyebrow (no disc, no box,
+   non-interactive) that groups the steps beneath it. The grouped IA is unchanged; only
+   the header presentation moved from a button-like row to a section label. */
+.build-group-eyebrow { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; font-weight: 600; color: var(--faint); padding: 2px var(--space-2); margin-top: var(--space-2); }
+.build-group:first-child .build-group-eyebrow { margin-top: 0; }
+
+/* Sub-steps of the active group -- quiet V3 rows; a light left-border indent keeps the
+   parent -> child relationship legible without the heavy card look. */
+.build-substeps { list-style: none; margin: 0 0 0 var(--space-2); padding: 0 0 0 var(--space-2); border-left: 1px solid var(--border); display: flex; flex-direction: column; gap: var(--space-1); }
+.build-step { display: flex; align-items: center; gap: var(--space-2); padding: 6px 8px; border: 1px solid transparent; border-radius: var(--radius-control); background: transparent; color: var(--muted); font-size: 12px; cursor: pointer; }
+.build-step:hover { background: var(--surface); }
+.build-step:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.build-step-badge { flex-shrink: 0; width: 16px; height: 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent-weak); color: var(--accent-ink); font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.build-step-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.build-step.is-active { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.build-step.is-active .build-step-badge { background: var(--accent); color: var(--surface); }
+.build-step.is-done { color: var(--muted); }
+.build-step.is-done .build-step-badge { background: var(--accent-weak); color: var(--accent-ink); }
+.build-step.is-locked { color: var(--faint); border-color: transparent; cursor: default; }
+.build-step.is-locked:hover { background: transparent; }
+.build-step.is-locked .build-step-badge { background: var(--surface-sunk); color: var(--faint); border: 1px solid var(--border); }
+/* Trailing padlock affordance (line icon) on locked rows / groups. */
+.build-lock { margin-left: auto; flex: 0 0 12px; opacity: 0.7; }
+
+/* Panel -- the active-step card (eyebrow + title + subtitle) over the step body,
+   then the minimal Prev/Next toolbar. */
+.build-panel { flex: 1; display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+.build-step-card { display: flex; flex-direction: column; gap: var(--space-1); }
+/* PPI entry relocation: optional right-aligned action on the step-header row
+   (currently the Declare-step "Inspect Peak Detection" button). Position-only. */
+.build-card-headrow { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-3); }
+.build-card-heads   { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.build-card-eyebrow { text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px; font-weight: 600; color: var(--accent); }
+.build-card-title { font-family: var(--font-serif); font-weight: 600; font-size: 18px; margin: 0; color: var(--text); }
+.build-card-subtitle { font-size: 12.5px; margin: 0; color: var(--muted); }
+.build-panel-body { display: flex; flex-direction: column; gap: var(--space-4); min-width: 0; }
+
+/* Bottom navigation toolbar (v3 Identify-Mode pattern). A symmetric three-column
+   grid: equal 1fr side columns flank a centred auto column, so the count
+   (.bt-count) stays locked to the toolbar's horizontal centre however long the
+   group/step names grow. Flush full-width, non-scrolling -- the last flex child of
+   .build-surface. */
+.build-toolbar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border); background: var(--surface-sunk); }
+.bt-left { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.bt-right { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); min-width: 0; }
+.bt-group, .bt-step { color: var(--muted); font-size: 12px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bt-count { display: flex; align-items: center; white-space: nowrap; }
+.bt-pos { font-size: 12px; color: var(--text); font-weight: 500; font-variant-numeric: tabular-nums; }
+.bt-sep { color: var(--border-strong); padding: 0 var(--space-3); }
+/* v3 dim for disabled buttons -- scoped to the toolbar so Identify's controls are
+   untouched. */
+.build-toolbar .btn:disabled, .build-toolbar .btn[disabled] { opacity: 0.4; cursor: default; }
+/* Narrow viewports: keep the bar full-width with the count centred and Prev/Next at
+   the edges; drop the group/step chips when there is no room for them. */
+@media (max-width: 560px) { .bt-group, .bt-step { display: none; } }
+
+/* Build Calibration flex-shell -- gated to body.mode-build-calibration ONLY, so
+   Identify, the landing page, and the Calibration Library keep the default
+   page-scroll untouched. The whole surface becomes a viewport-height flex column:
+   the App Header, Dev Banner, Page Title, Step Rail, Panel Header, and Bottom Toolbar
+   are all fixed; .build-panel-body is the single vertical scroller. min-height: 0 on
+   every flex link confines the scroll to the body so it never bubbles to an ancestor. */
+body.mode-build-calibration { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+/* The app mounts into #app (between body and the header/shell); it must carry the
+   full-height flex column too, or the chain breaks here and nothing stretches. */
+body.mode-build-calibration #app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.mode-build-calibration .shell { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+body.mode-build-calibration .build-surface { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.mode-build-calibration .build-titlebar { flex: 0 0 auto; margin: var(--space-4) var(--space-5); }
+body.mode-build-calibration .build-body { flex: 1; min-height: 0; overflow: hidden; align-items: stretch; padding: 0 var(--space-5); }
+body.mode-build-calibration .build-rail-col { min-height: 0; }
+body.mode-build-calibration .build-panel { min-height: 0; }
+body.mode-build-calibration .build-step-card { flex: 0 0 auto; }
+body.mode-build-calibration .build-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding-right: var(--space-2); }
+body.mode-build-calibration .build-toolbar { flex: 0 0 auto; }
+
+/* Configure step bodies -- each is a card (matching the old single-card Source
+   Manager look). The inputs recap on the Create step is a small definition grid. */
+.cfg-step { display: flex; flex-direction: column; gap: var(--space-4); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-4); }
+.cfg-recap { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: var(--space-3); margin: 0; }
+.cfg-recap > div { display: flex; flex-direction: column; gap: 2px; }
+.cfg-recap dt { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.cfg-recap dd { margin: 0; font-size: 14px; color: var(--text); font-variant-numeric: tabular-nums; }
+/* Stage-1 cancel row (return to the Manager, batch discarded). Sits at the foot of the
+   film strip in the V3 `step-film-foot` manner: pushed to the bottom with a separator. */
+.buildflow-cancel { margin-top: auto; padding-top: var(--space-2); border-top: 1px solid var(--border); }
+/* Manager entry actions row (New calibration / Add synthetic demo) above the
+   populated-library toolbar -- mirrors the empty-library entry buttons. */
+/* Inline guidance when deleting the active calibration is blocked until the
+   operator makes another calibration active first. Informational, not an error. */
+.cal-active-delete-note {
+  display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap;
+  background: var(--surface-sunk); border: 1px solid var(--border);
+  border-radius: var(--radius-control); padding: var(--space-2) var(--space-3);
+  font-size: 12.5px; color: var(--text);
+}
+/* Calibration Manager page header: title left, the New calibration entry point
+   right (populated state only -- empty-state buttons live in the onboarding card). */
+.cal-manager-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-4); }
+.cal-manager-head .page-title { margin: 0; }
+/* The header action button keeps its size; the title column takes the rest. */
+.cal-manager-head > .btn { flex-shrink: 0; }
+/* Manager page header title group: green "Calibrate Mode" eyebrow, serif title,
+   muted subtitle -- matches the Framer Calibration Library prototype. min-width:0
+   lets the column shrink (so the subtitle wraps at the available width) instead of
+   overflowing the header on narrow windows. */
+.cal-manager-titles { display: flex; flex-direction: column; gap: var(--space-1); min-width: 0; }
+.cal-manager-eyebrow { text-transform: uppercase; letter-spacing: 0.05em; font-size: 12.5px; font-weight: 600; color: var(--accent); }
+.cal-manager-subtitle { margin: 0; font-size: 13px; color: var(--muted); max-width: none; }
+
+/* Populated Calibration Library (Framer Scenario 1) -- two-panel landing shown when
+   >=1 calibration is saved: left saved-calibrations panel (count + toolbar + pinned
+   active card + Other list) and right detail panel (equation, fit pill, residual
+   bars, anchor table). Tokens + existing fonts only; reuses Scenario-3 panel chrome
+   (.cal-panel-title, .cal-eyebrow, .cal-panel-sub, .cal-workspace grid). */
+.cal-detail-panel {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-window); padding: var(--space-4);
+}
+
+.cal-saved-titlerow { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.cal-count-pill {
+  flex-shrink: 0; font-size: 11.5px; font-weight: 600; color: var(--muted);
+  padding: 2px 10px; border-radius: 999px;
+  background: var(--surface-sunk); border: 1px solid var(--border);
+}
+
+.cal-toolbar { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cal-search {
+  flex: 1 1 180px; min-width: 0; font-family: var(--font-sans); font-size: 12.5px;
+  color: var(--text); background: var(--surface-sunk);
+  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
+  padding: 6px 10px;
+}
+.cal-search::placeholder { color: var(--faint); }
+.cal-select {
+  font-family: var(--font-sans); font-size: 12.5px; color: var(--text);
+  background: var(--surface-sunk); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control); padding: 6px 8px;
+}
+
+.cal-section-label {
+  display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2);
+  margin-top: var(--space-1); font-size: 12px; font-weight: 600; color: var(--text);
+}
+.cal-section-label .muted { font-weight: 400; font-size: 11.5px; }
+/* Section labels (Active calibration / Other saved equations): UPPERCASE + green
+   theme per the prototype; the muted sub-text beside them is unchanged. */
+.cal-section-name { text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); }
+/* "Other saved equations" header: gray per the prototype (vs the green active-section
+   header). Stays UPPERCASE -- only the colour differs. */
+.cal-section-name--muted { color: var(--muted); }
+
+.cal-card {
+  position: relative; /* anchors the absolute .cal-card-cover selection target */
+  display: flex; flex-direction: column; gap: var(--space-2);
+  border: 1px solid var(--border); border-radius: var(--radius-card);
+  padding: var(--space-3); background: var(--surface);
+}
+.cal-card--active { background: var(--accent-weak); border-color: var(--accent-weak); }
+.cal-card--inactive { background: var(--bg); }
+/* Selected (previewed) saved calibration: neutral fill, accent outline -- distinct
+   from an unselected card (hairline border) and the active card (accent-weak fill).
+   No active styling -- this card is not in use. Inset ring so the scrolling
+   .cal-other-list never clips it and it adds no layout shift. */
+.cal-card--selected {
+  background: var(--bg);
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.cal-note-card { background: var(--surface-sunk); }
+.cal-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.cal-card-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+/* Whole-card selection: a transparent button stretched over the card is the
+   single click+keyboard target (carries .cal-act-view). Action buttons sit
+   above it via .cal-card-actions z-index, so they stay independently clickable. */
+.cal-card-cover {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  background: none; border: 0; margin: 0; padding: 0;
+  cursor: pointer; border-radius: inherit;
+}
+.cal-card-cover:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+/* Hover cue on an unselected saved card: deepen the hairline so it reads as
+   interactive without fighting the active/selected borders. */
+.cal-card--inactive:not(.cal-card--selected):hover { border-color: var(--border-strong); }
+.cal-card-name { font-weight: 600; font-size: 13px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-card-meta { font-size: 11.5px; }
+.cal-badge {
+  flex-shrink: 0; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em;
+  font-weight: 600; padding: 2px 8px; border-radius: 999px;
+  background: var(--accent); color: #FBFAF6;
+}
+.cal-card-rms { flex-shrink: 0; font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text); }
+.cal-card-metrics { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); font-size: 12px; }
+.cal-card-eq { font-family: var(--font-mono); font-size: 11.5px; color: var(--accent-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Only the action BUTTONS sit above the absolute .cal-card-cover (so they stay
+   clickable); the row container does NOT -- its gaps/empty space fall back to the
+   cover, so the whole card (incl. the button row) selects with no dead zones. */
+.cal-card-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; }
+.cal-card-actions .btn { position: relative; z-index: 1; padding: 4px 10px; font-size: 11.5px; }
+
+.cal-other-list { display: flex; flex-direction: column; gap: var(--space-2); overflow-y: auto; max-height: 320px; padding-right: 2px; }
+.cal-empty-line { font-size: 12.5px; margin: 0; }
+
+/* Detail panel */
+.cal-detail-head { display: flex; flex-direction: column; gap: var(--space-1); }
+.cal-eq-card {
+  display: flex; flex-direction: column; gap: var(--space-2);
+  background: var(--surface-sunk); border: 1px solid var(--border);
+  border-radius: var(--radius-card); padding: var(--space-3);
+}
+.cal-eq-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.cal-eq-str { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); }
+.cal-eq-quality { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.cal-fit-pill { font-size: 11px; font-weight: 600; padding: 2px 10px; border-radius: 999px; }
+.cal-fit-pill.is-good { background: var(--accent-weak); color: var(--accent-ink); }
+.cal-fit-pill.is-check { background: var(--warn-bg); color: var(--warn-text); border: 1px solid var(--warn-border); }
+.cal-eq-resid { font-size: 12px; font-variant-numeric: tabular-nums; }
+
+.cal-resid { display: flex; flex-direction: column; gap: var(--space-1); }
+.cal-resid-title { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: var(--space-1); }
+.cal-resid-row { display: grid; grid-template-columns: 88px 1fr 40px; align-items: center; gap: var(--space-2); font-size: 11.5px; }
+.cal-resid-label { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-resid-track { height: 8px; border-radius: 999px; background: var(--surface-sunk); border: 1px solid var(--border); overflow: hidden; }
+.cal-resid-bar { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.cal-resid-val { text-align: right; font-variant-numeric: tabular-nums; color: var(--text); }
+
+.cal-anchor-table { display: flex; flex-direction: column; }
+.cal-anchor-head, .cal-anchor-row { display: grid; grid-template-columns: 1fr 80px 80px; gap: var(--space-2); padding: 6px 0; font-size: 12px; }
+.cal-anchor-head { font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--border-strong); text-transform: uppercase; letter-spacing: 0.03em; font-size: 10.5px; }
+.cal-anchor-row { border-bottom: 1px solid var(--border); color: var(--text); font-variant-numeric: tabular-nums; }
+.cal-anchor-row span:nth-child(n+2), .cal-anchor-head span:nth-child(n+2) { text-align: right; }
+
+.cal-detail-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; margin-top: auto; }
+
+/* Stage B -- the Execution Stepper. */
+.exec-stepper { display: flex; flex-direction: column; gap: var(--space-3); }
+.stepper-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.stepper-head .page-h2 { margin: 0; }
+.stepper-controls { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.stepper-status { font-size: 12.5px; }
+
+/* While the engine runs, the rail + nav are read-only (the engine owns position). */
+.stepper-running .stage-rail, .stepper-running .stage-nav { pointer-events: none; opacity: 0.75; }
+.stepper-running .stage-step.active { box-shadow: 0 0 0 2px var(--accent-weak); }
+
+/* Save & activate panel (shown when the run completes). */
+.save-panel { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+/* ----- Review summary: the dedicated `done` decision surface ---------------- */
+.review-summary { display: flex; flex-direction: column; gap: var(--space-3); }
+.review-section-title { margin: 0 0 var(--space-2); font-size: 13px; font-weight: 600; color: var(--text); }
+
+/* 1. Result header. */
+.review-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  gap: var(--space-4); flex-wrap: wrap;
+}
+.review-head-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.review-eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.review-model { margin: 0; font-size: 18px; }
+.review-eq { font-family: var(--mono, "Source Code Pro", monospace); font-size: 12.5px; color: var(--text); }
+.review-headline { display: flex; gap: var(--space-4); margin: 0; }
+.review-headline > div { display: flex; flex-direction: column; }
+.review-headline dt { font-size: 11px; color: var(--muted); }
+.review-headline dd { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+
+/* 2. Hero plot -- a single StageView whose chrome is hidden (one plot, not eight). */
+.review-hero.stage-view { display: block; }
+.review-hero .stage-rail, .review-hero .stage-explain, .review-hero .stage-nav { display: none; }
+
+/* 3 + 5. Side-by-side fit quality + inputs recap on wide screens. */
+.review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-3); }
+@media (max-width: 760px) { .review-grid { grid-template-columns: 1fr; } }
+.review-quality-grid { display: flex; gap: var(--space-4); margin: 0 0 var(--space-2); }
+.review-quality-grid > div { display: flex; flex-direction: column; }
+.review-quality-grid dt { font-size: 11px; color: var(--muted); }
+.review-quality-grid dd { margin: 0; font-size: 14px; font-variant-numeric: tabular-nums; }
+.review-decision { margin: 0; font-size: 12.5px; }
+
+/* 4. Points table -- kept (neutral/teal) vs rejected (amber), no new palette. */
+.review-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.review-table th, .review-table td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.review-table th { color: var(--muted); font-weight: 500; }
+.review-table td { font-variant-numeric: tabular-nums; }
+.review-pt--kept td:first-child { box-shadow: inset 2px 0 0 var(--accent); }
+.review-pt--dropped { color: var(--warn-text); background: var(--warn-bg); }
+.review-pt--dropped td:first-child { box-shadow: inset 2px 0 0 var(--warn-text); }
+.review-pt-note { display: block; font-size: 11px; }
+
+/* 5. Inputs recap. */
+.review-recap-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.review-recap-list li { display: flex; justify-content: space-between; gap: var(--space-2); font-size: 12.5px; }
+.review-recap-id { font-weight: 500; }
+
+/* 6. Caveats -- amber (--warn-text via .flag-caveat); standing disclaimer last. */
+.review-caveat-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.review-caveat-list .flag-caveat { font-size: 12.5px; }
+.review-disclaimer { margin: var(--space-2) 0 0; font-weight: 500; }
+
+/* 7. Model toggle + Save controls. */
+.review-controls { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+/* --- Identify mode: cfg-spectrum preview + calibration selector ------------
+ * The grouped Identify surface reuses the .build-* rail/panel/toolbar and the
+ * .cfg-step / .review-* / .result-card families verbatim (Reference-model
+ * principle). These are the only Identify-specific surfaces with no Calibrate
+ * analogue: the loaded-spectrum preview and the calibration picker. */
+.ident-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; margin-bottom: var(--space-2); }
+.ident-preview-name { font-family: var(--font-serif); font-weight: 600; font-size: 15px; color: var(--text); }
+.ident-preview-wrap { width: 100%; position: relative; }
+/* height only -- the grab/panning cursor comes from the shared `.chart` rule now the
+   preview is interactive (C3). */
+.ident-preview-wrap .chart { height: 300px; }
+.ident-reset { padding: 3px 9px; font-size: 11.5px; }
+.ident-cal-pick { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.ident-cal-label { font-size: 12.5px; color: var(--muted); }
+.ident-cal-pick .select { min-width: 220px; }
+.ident-cal-eq { margin: var(--space-1) 0 0; font-size: 12.5px; }
+
+/* --- Declare Identities (Phase 2): navigator + active-source assignment ------
+   Layout: compact spectrum navigator (left, the non-linear cursor) + the active
+   source's assignment surface (right). Reuses the shared .select control and the
+   passive .br-status--* chip language; the review indicator is display-only. */
+.di-layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  gap: var(--space-4, 16px);
+  align-items: start;
+}
+.di-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.di-nav-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.di-nav-btn:hover { border-color: var(--border-strong); }
+.di-nav-item--active .di-nav-btn {
+  border-color: var(--accent);
+  background: var(--accent-weak);
+}
+.di-nav-btn .br-file {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.di-review {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 0 7px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.di-review--untouched { color: var(--muted); }
+.di-review--in-progress { color: var(--warn-text); }
+.di-review--reviewed { color: var(--accent); }
+
+.di-active {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4, 16px);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3, 12px);
+}
+.di-active-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3, 12px);
+}
+.di-active-head .br-file { font-weight: 600; }
+.di-peaks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.di-peak {
+  display: grid;
+  grid-template-columns: 7.5em 1fr minmax(180px, 240px);
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+}
+.di-peak-ch { font-variant-numeric: tabular-nums; }
+.di-peak-sig { font-size: 12px; }
+.di-hint { margin: 0; }
+
+.di-checklist-wrap { border-top: 1px solid var(--border); padding-top: var(--space-3, 12px); }
+.di-checklist-title { margin: 0 0 6px; font-size: 12px; }
+.di-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+}
+.di-line { font-size: 13px; }
+.di-line--unmatched { color: var(--muted); }
+.di-line--matched { color: var(--text); }
+.di-line--matched .di-line-mark { color: var(--accent); }
+.di-line--conflict { color: var(--warn-text); }
+.di-line-note { font-size: 11px; }
+
+/* --- Declare Identities (Phase 3): embedded evidence host --------------------
+   The read-only Peak Pipeline Inspector mounts inline inside the active-source
+   surface; min-width 0 keeps the canvas from forcing the grid column wide. */
+.di-evidence { min-width: 0; }
+.di-evidence .inspector-panel { margin: 0; }
+
+/* ============================================================================
+   Peak Finder -- v3 Identify `.step-*` shell (ported from
+   MOCKUP_IDENTIFY_LOAD.html; v4 tokens already match v3). Peak-Finder-only:
+   Calibrate/Identify keep the `.build-*` shell above. The one intentional
+   extension is the grouped rail's `.step-film-group` eyebrows.
+   ========================================================================== */
+
+/* top bar -- aligned to the landing `.app-header` visual language: it reuses the
+   landing `.brand` / `.brand-logo` / `.toolbar-nav` / `.nav-btn` components verbatim
+   (so those rules style it), and matches the header's space-between layout, padding,
+   and (via the 30px brand logo) height. The `.step-topbar` class name is kept as the
+   flex-shell hook (body.mode-peak-finder rules below). */
+.step-topbar { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding: var(--space-3) var(--space-5); background: var(--surface); border-bottom: 1px solid var(--border); }
+
+/* dev banner: Peak Finder reuses the shared platform `.dev-banner` (Rev 4, §A) --
+   no PF-specific banner rule; the flex-shell rule below keeps it a fixed chrome row. */
+
+/* body / rail / main */
+.step-body { display: flex; flex: 1; min-height: 0; }
+/* Rail: v3 film-strip, kept as an <ol> (Divergence) so the grouped <li> items are
+   valid list semantics. Fixed-basis, bordered, sunk column; scrolls if long. */
+.step-film { flex: 0 0 176px; border-right: 1px solid var(--border); background: var(--surface-sunk); padding: var(--space-2); overflow-y: auto; display: flex; flex-direction: column; gap: 2px; list-style: none; margin: 0; }
+/* NEW: the grouped-IA eyebrow rows (Configure / Run / Review). */
+.step-film-group { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; font-weight: 600; color: var(--faint); padding: 6px var(--space-2) 2px; }
+.step-film-item { display: flex; align-items: center; gap: var(--space-2); width: 100%; text-align: left; background: transparent; border: 1px solid transparent; border-radius: var(--radius-control); padding: 6px 8px; font-size: 12px; color: var(--muted); cursor: pointer; }
+.step-film-item:hover { background: var(--surface); }
+/* Rev 5: FOCUS highlight keys off `.current` (this step === activeIndex), NOT the
+   status. So navigating between completed steps moves the highlight without touching
+   any icon; the accent-filled number badge + border mark the focused row in any
+   status (a completed Run stage or the Review surface). */
+.step-film-item.current { background: var(--surface); border-color: var(--border-strong); color: var(--text); }
+.step-film-item:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.step-film-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.step-film-num { font-variant-numeric: tabular-nums; font-size: 11px; width: 16px; height: 16px; flex: 0 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent-weak); color: var(--accent-ink); }
+.step-film-item.current .step-film-num { background: var(--accent); color: var(--surface); }
+.step-film-item.locked { color: var(--faint); cursor: not-allowed; }
+.step-film-item.locked:hover { background: transparent; }
+.step-film-item.locked .step-film-num { background: var(--surface-sunk); color: var(--faint); border: 1px solid var(--border); }
+/* Trailing three-state status glyph (Rev 4, §D): lock (locked) / unlock (active) /
+   check (done) -- inline currentColor SVGs (step-film-status slot), tinted per row
+   state. The NUMBER badge is always kept beside it (point 4); locked inherits the
+   row's faint colour, active + done read in accent. */
+.step-film-status { margin-left: auto; display: inline-flex; align-items: center; justify-content: center; width: 14px; height: 14px; flex: 0 0 14px; }
+.step-film-status svg { display: block; }
+.step-film-item.active .step-film-status,
+.step-film-item.done .step-film-status { color: var(--accent); }
+/* #1 accordion collapsed group headers (PF rail only -- these classes appear solely in the
+   Peak Finder rail, so they are PF-scoped by construction). A clickable row: label +
+   done/total count + state glyph; the base `.step-film-group` eyebrow styling (uppercase,
+   faint) is overridden back into a normal interactive row. */
+.step-film-group--collapsed { display: flex; align-items: center; gap: var(--space-2); text-transform: none; letter-spacing: normal; font-size: 12px; font-weight: 500; color: var(--muted); padding: 6px 8px; border: 1px solid transparent; border-radius: var(--radius-control); cursor: pointer; }
+.step-film-group--collapsed:hover { background: var(--surface); }
+.step-film-group--collapsed:focus-visible { outline: none; box-shadow: 0 0 0 2px var(--accent); }
+.step-film-group--collapsed.locked { color: var(--faint); cursor: not-allowed; }
+.step-film-group--collapsed.locked:hover { background: transparent; }
+.step-film-grouplabel { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* The per-group count was dropped (2026-07-05): the base `.step-film-status` margin-left:auto
+   now pushes the state glyph to the row's trailing edge, matching the expanded step rows. */
+.step-film-group--collapsed.done .step-film-status,
+.step-film-group--collapsed.reached .step-film-status { color: var(--accent); }
+/* Group-name format is CONSISTENT across focus states (PF rail only -- `#pfRail`-scoped so the
+   shared Identify eyebrow is untouched): the focused eyebrow (`.step-film-group`) AND the
+   collapsed group headers (`.step-film-group--collapsed`) both render as ONE bold, upper-case
+   group heading -- deliberately NOT the collapsed default's title-case 12px look, which matched
+   the (normal-weight) sub-step rows. Only the lock/interaction STATE colours differ, never the
+   typography; this overrides the collapsed rule's typography (higher specificity via `#pfRail`). */
+#pfRail .step-film-group,
+#pfRail .step-film-group--collapsed { text-transform: uppercase; letter-spacing: 0.06em; font-size: 10.5px; font-weight: 700; color: var(--muted); }
+#pfRail .step-film-group--collapsed.locked { color: var(--faint); }
+/* #2 constant auto-width: size the PF rail to the widest label that can EVER appear (the
+   in-flow `.pf-rail-sizer` ghost list reserves it), so workflow names never truncate AND the
+   width never shifts as the accordion expands/collapses groups. Peak-Finder-only (id-scoped --
+   `.step-film` is SHARED with the Identify rail). No max-width: the sizer makes the width
+   deterministic, and a cap would truncate `Preliminary Classification`. */
+#pfRail { flex: 0 0 auto; width: max-content; }
+#pfRail .step-film-label { overflow: visible; text-overflow: clip; }
+/* The width sizer (#2): in-flow so it feeds `max-content`, but zero-height + hidden so it
+   reserves inline width only -- no vertical space, no a11y-tree noise, footer pin intact. */
+.pf-rail-sizer { height: 0; overflow: hidden; visibility: hidden; }
+/* Rail action footer (Rev 3, §A): a bottom-pinned column of full-width standard
+   `.btn`s (white default, platform hover) -- workflow + workspace actions moved out
+   of the page body. `margin-top:auto` pins it to the bottom of the flex-column rail. */
+.step-film-actions { margin-top: auto; padding-top: var(--space-2); display: flex; flex-direction: column; gap: var(--space-2); }
+.step-film-actions .btn { width: 100%; justify-content: center; }
+
+/* `scrollbar-gutter: stable` reserves the vertical scrollbar's track on EVERY page, so
+   content width never changes between a page that scrolls and one that fits -- otherwise the
+   scrollbar appearing/disappearing shifts the whole body horizontally when switching steps. */
+.step-main { flex: 1; min-width: 0; overflow-y: auto; scrollbar-gutter: stable; padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; }
+
+/* Active-step card: reuses the Calibrate/Identify `.build-step-card` (Rev 3, §C).
+   The build-mode rule below is Peak-Finder-scoped here so the card does not stretch
+   in the PF flex column (mirrors the mode-build-calibration rule). */
+body.mode-peak-finder .build-step-card { flex: 0 0 auto; }
+
+/* chart toolbar + chart card */
+.step-charttoolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-2); }
+.toggle-group { display: flex; border: 1px solid var(--border-strong); border-radius: var(--radius-control); overflow: hidden; }
+.toggle-group button { border: none; border-radius: 0; background: var(--surface); color: var(--text); padding: 4px 14px; font-size: 12px; cursor: pointer; }
+.toggle-group button + button { border-left: 1px solid var(--border-strong); }
+.toggle-group button.active { background: var(--accent); color: var(--bg); font-weight: 500; }
+.step-charttoolbar-right { display: flex; align-items: center; gap: var(--space-3); }
+.step-zoomhint { font-size: 11px; color: var(--faint); }
+.step-reset { display: inline-flex; align-items: center; gap: var(--space-1); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-control); color: var(--text); font-size: 11px; padding: 3px 9px; cursor: pointer; }
+.step-reset:disabled, .step-reset[aria-disabled="true"] { opacity: 0.4; cursor: not-allowed; }
+.step-chartwrap { position: relative; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-card); padding: var(--space-2); height: 340px; margin-bottom: var(--space-3); }
+/* The ONE canonical chart block (pfChartBlock): a flex-column, NO-gap wrapper so it is a single flex
+   item in any step container (`.pf-review`, `.cfg-step`, `.pf-continuum` ...). Internal toolbar ->
+   chart -> legend -> caption spacing is driven by the margin rules below, NOT the container's own
+   `gap`, so every stage's chart block reads identically to the Detected Peaks reference. */
+.pf-chartblock { display: flex; flex-direction: column; }
+/* When a legend sits directly below the chart, its gap to the chart should match the graph-type
+   (Linear/Log) toolbar's gap ABOVE the chart -- one --space-2 either side. Drop the chart card's
+   larger bottom margin here and let the legend supply the single --space-2 (the flex column does
+   not collapse the two, so they would otherwise sum). */
+.step-chartwrap:has(+ .pf-fit-overlays),
+.step-chartwrap:has(+ .pf-cont-legend),
+.step-chartwrap:has(+ .pf-lm-legend) { margin-bottom: 0; }
+.step-chartwrap + .pf-fit-overlays,
+.step-chartwrap + .pf-cont-legend,
+.step-chartwrap + .pf-lm-legend { margin-top: var(--space-2); }
+
+/* bottom nav */
+.step-nav { display: flex; align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-5); border-top: 1px solid var(--border); background: var(--surface-sunk); }
+.step-nav button { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-control); color: var(--text); font-size: 12px; padding: 5px 14px; cursor: pointer; }
+.step-nav button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 500; }
+.step-nav button:disabled { opacity: 0.4; cursor: default; }
+.step-progress { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Peak Finder flex-shell -- mirror of the mode-build-calibration block keyed on
+   the `.step-*` vocabulary. The whole surface is a viewport-height column: the
+   top bar / dev banner / bottom nav are fixed chrome; `.step-main` is the ONLY
+   vertical scroller. #app MUST be in the chain (memory: app-flex-chain) or the
+   column breaks and nothing stretches. The app-header + dev-banner are not
+   emitted in this mode (render()), so no suppression rule is needed. */
+body.mode-peak-finder { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+body.mode-peak-finder #app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.mode-peak-finder .shell { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+body.mode-peak-finder .step-app { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+body.mode-peak-finder .step-topbar,
+body.mode-peak-finder .dev-banner,
+body.mode-peak-finder .step-nav { flex: 0 0 auto; }
+body.mode-peak-finder .step-body { flex: 1; min-height: 0; overflow: hidden; }
+body.mode-peak-finder .step-main { flex: 1; min-height: 0; overflow-y: auto; }
+
+/* --- Peak Finder body content ------------------------------------------------
+   The chart fills the v3 `.step-chartwrap` card (which now carries the border /
+   height / padding), so the canvas itself is chrome-free. Grab cursors mirror the
+   shared chart-interaction binding's other consumers. */
+.pf-stage-chart { width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+.pf-stage-chart.panning { cursor: grabbing; }
+/* Error auto-recovery countdown line (Rev 4, §C): sits under the disclaimer message. */
+.pf-error-countdown { margin: var(--space-2) 0 0; font-size: 12.5px; }
+.pf-caption { margin: 0 0 var(--space-3); font-size: 12.5px; }
+.pf-review { display: flex; flex-direction: column; }
+
+/* --- Review-page "Adjust smoothing" panel (2026-07-07) ---
+   The guided escape hatch: change the SG defaults after seeing the results. Reuses the shared
+   `.pf-cont-selector` / `.pf-cont-input` / `.pf-net-input` toggle look; only the surrounding
+   card + rows are new. Additive .pf-review-adjust* only. */
+.pf-review-adjust {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.pf-review-adjust-head { display: flex; flex-direction: column; gap: var(--space-1); }
+.pf-review-adjust-title { margin: 0; font-size: 13.5px; font-weight: 700; color: var(--text); }
+.pf-review-adjust-hint { margin: 0; font-size: 12.5px; line-height: 1.5; }
+.pf-review-adjust-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+
+/* --- Peak Finder Savitzky-Golay parameter panel ---
+   The param controls sit UNPACKED directly inside the outer `.pf-sg-card--params` surface
+   (no inner box), so the panel reads as a single card. Additive .pf-* only. */
+.pf-sg-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+.pf-sg-toggle input { cursor: pointer; }
+.pf-sg-hint { margin: 0 0 var(--space-2); font-size: 12px; line-height: 1.5; }
+/* Two stacked rows: the input fields, then the action buttons. Each row wraps independently
+   so the fields and the buttons stay aligned to their own row (never interleaving). */
+.pf-sg-params { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+.pf-sg-params { --pf-sg-control-w: 140px; }
+.pf-sg-fields { display: flex; flex-wrap: wrap; align-items: flex-end; gap: var(--space-2); }
+.pf-sg-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.pf-sg-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.pf-sg-input {
+  width: var(--pf-sg-control-w);
+  padding: 6px 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--text);
+}
+.pf-sg-input:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Apply + Reset buttons share one action row and take the same fixed width as the inputs
+   above them (`--pf-sg-control-w`, centred text) so the two rows line up as a tidy 2x2 grid
+   regardless of label length. Reset is the primary (accent) button (`.btn-primary`); Apply
+   stays the neutral siderail-style `.btn`. */
+.pf-sg-apply,
+.pf-sg-reset { width: var(--pf-sg-control-w); justify-content: center; }
+.pf-sg-error { margin-top: var(--space-3); }
+/* Non-blocking SG advisory (O1 §6b): a muted caution line, deliberately NOT the boxed
+   .disclaimer error style -- it never blocks Continue. */
+.pf-sg-advisory { margin: var(--space-2) 0 0; font-size: 12px; line-height: 1.5; color: var(--warn-text); }
+/* Load-stage "What did I upload?" info region: a responsive card grid BELOW the raw
+   chart (the old muted `.pf-file-info` caption folded into the File Information card).
+   auto-fit reflows 1..4 columns by width so both axes of space are used, no dead gap. */
+.pf-load-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+  /* stretch + equal-fraction auto rows so EVERY card matches the tallest one, whether
+     the cards sit on one row or wrap to several -- uniform container sizes throughout. */
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+.pf-info-card h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+.pf-info-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 4px 12px;
+  margin: 0;
+  font-size: 12.5px;
+}
+.pf-info-grid dt { color: var(--muted); }
+.pf-info-grid dd {
+  margin: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+/* Data Quality checklist: a stack of ✓/⚠ rows. Warnings are unreachable for a parsed
+   spectrum today (the parser rejects such files up front) but styled truthfully. */
+.pf-checks { display: grid; gap: 4px; font-size: 12.5px; }
+.pf-check { display: flex; gap: 6px; align-items: center; }
+.pf-check.ok { color: var(--text); }
+.pf-check.warn { color: var(--warn-text); }
+.pf-check-mark { font-weight: 600; }
+/* Rail "Load Another File" -- a <label class="btn"> wrapping a hidden file input, so it
+   reads and behaves like the sibling rail action buttons (§D). `line-height:normal` matches
+   the sibling <button>s' box height (a label would otherwise inherit the taller body value). */
+.pf-rail-load { cursor: pointer; text-align: center; line-height: normal; }
+/* O3: explicit Load sub-step framing (one rail step, two labelled card sections). */
+.pf-substep { margin-top: var(--space-3); }
+.pf-substep:first-of-type { margin-top: var(--space-2); }
+.pf-substep-head { margin: 0 0 var(--space-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+/* Estimate Continuum stage (SD3): inline input selector, animated SNIP sub-step checklist,
+   and ONE overlaid chart with a display-manager legend. Reuses the .toggle-group / .pf-scale
+   idiom for the input selector so it reads as native chrome. Channel-space only. */
+/* Every continuum sub-page wraps its body in the same white card as the raw SG stage
+   (`.cfg-step`): a flex column with a uniform gap on a bordered `--surface` panel, so the
+   page content reads as one contained block (chart + legend + caption + cards / net-SG grid)
+   rather than floating loose on the paper background. The `.pf-continuum--sg` modifier is now
+   redundant with this base (kept as a no-op hook in case the net-SG page needs a tweak). */
+.pf-continuum {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+/* Every Peak Finder step reads as ONE contained white panel (matching .cfg-step / .pf-continuum):
+   give the run / detect / review stages -- which previously floated loose on the paper -- the same
+   surface + border + padding + uniform gap. `.pf-stage` wraps the generic gate stages. */
+.pf-review,
+.pf-fit,
+.pf-val,
+.pf-lm,
+.pf-stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  padding: var(--space-4);
+}
+/* Item 1: "Select an Input Spectrum:" label + a tab-width gap + the buttons, on one row. */
+.pf-cont-selector-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); }
+.pf-cont-selector-label { font-size: 12.5px; font-weight: 600; color: var(--text); }
+.pf-cont-help { margin: var(--space-2) 0 0; font-size: 12.5px; line-height: 1.5; }
+/* Item 2: the button container hugs its buttons (content-width), not the full row. */
+.pf-cont-selector { display: inline-flex; width: fit-content; flex-wrap: wrap; }
+/* The Raw/Smoothed (raw stage) and Net/Smoothed-Net (#3 net stage) selector buttons share
+   one look -- `.pf-net-input` mirrors `.pf-cont-input` so the two SG stages are identical. */
+.pf-cont-input,
+.pf-net-input {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--muted);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pf-cont-input.active,
+.pf-net-input.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pf-cont-input:focus-visible,
+.pf-net-input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-cont-inputhint { margin: var(--space-2) 0 0; font-size: 12px; }
+.pf-cont-checklist {
+  list-style: none;
+  margin: var(--space-3) 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
+}
+.pf-cont-substep { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--faint); }
+.pf-cont-substep.done { color: var(--text); }
+.pf-cont-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid var(--border-strong); color: var(--accent);
+  font-size: 11px; font-weight: 700; line-height: 1;
+}
+.pf-cont-substep.done .pf-cont-check { border-color: var(--accent); background: rgba(15, 110, 86, 0.10); }
+/* Item 3: display-manager legend — one per-series visibility toggle, each with a colour
+   swatch. `is-on` = visible; toggled-off pills dim so the on/off state reads at a glance. */
+/* Legend presentation is STANDARDISED to the Review overlay legend's segmented green-pill look
+   (.toggle-group / .pf-fit-overlay): the SG / continuum / SNIP / net legends all share it, so
+   every swatch legend in the app reads the same. A solid-accent segment = "on" (the series is
+   drawn on the chart); an un-filled segment = "off" (the Net page's toggled-off series). */
+.pf-cont-legend {
+  display: flex; flex-wrap: wrap; width: fit-content; max-width: 100%;
+  border: 1px solid var(--border-strong); border-radius: var(--radius-control);
+  overflow: hidden; margin: 0 0 var(--space-2);
+}
+.pf-cont-series {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  border: none; border-radius: 0;
+  background: var(--surface); color: var(--text);
+  padding: 4px 14px; font-family: inherit; font-size: 12px; cursor: pointer;
+}
+.pf-cont-series + .pf-cont-series { border-left: 1px solid var(--border-strong); }
+.pf-cont-series.is-on { background: var(--accent); color: var(--bg); font-weight: 500; }
+.pf-cont-series:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-cont-swatch { width: 12px; height: 12px; border-radius: 2px; display: inline-block; flex: 0 0 auto; }
+.pf-cont-cap { margin: 4px 0 0; font-size: 12px; }
+/* #5 data-led educational continuum pages (LLS/SNIP/inverse/net): a derived stat grid
+   (reusing `.cfg-recap`) + optional 5-row sample table (reusing `.pf-table`), plus the
+   filled lesson sentence. The LLS + inverse pages lead with this data and shrink the
+   supporting chart (`.pf-cont-chart--sm`); SNIP + net keep the chart primary. */
+.pf-cont-data { display: flex; flex-direction: column; gap: var(--space-3); margin: var(--space-3) 0 0; }
+.pf-cont-sample { margin: 0; }
+.pf-cont-stats { margin: 0; }
+.pf-cont-lesson { margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--text); }
+.pf-cont-flatnote { margin: 0; font-size: 12px; }
+.pf-cont-chart--sm { height: 200px; }
+/* Working Copy stage (cont-working): a purely EDUCATIONAL 2×2 card grid below the untouched
+   chart -- the stage does no math, so it teaches the pipeline instead of visualising a diff.
+   Two-up on normal widths, single column under 760px; the chart above stays full-width. Cards
+   reuse the `.pf-sg-card` sunk surface; the two stat cards nest `.cfg-recap`. Card ③ ("Why a
+   Working Copy?") is emphasised (accent border + weight) since it carries the key lesson. */
+.pf-wc-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  align-items: stretch;
+}
+.pf-wc-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-wc-card-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-wc-why, .pf-wc-next { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); }
+/* Card ③ emphasis: the key lesson gets an accent left border, a lifted surface, and a heavier,
+   ink-coloured title so it reads as the focal element of the grid. */
+.pf-wc-card--why {
+  border-color: var(--accent);
+  border-left-width: 3px;
+  background: var(--surface);
+}
+.pf-wc-card--why .pf-wc-card-title { color: var(--accent-ink); }
+.pf-wc-card--why .pf-wc-why { font-size: 13px; text-align: justify; }
+@media (max-width: 760px) { .pf-wc-cards { grid-template-columns: 1fr; } }
+/* LLS Transform stage (cont-lls): a twin-chart teaching page. The primary visual is a pair of
+   stacked, independently auto-scaled comparison charts (Working Spectrum in counts above its
+   LLS transform) -- their shapes match while the axis labels reveal the counts→LLS compression.
+   Below them, a responsive 2-up card grid (Summary / Effect / Statistics / Why LLS?) with the
+   Mathematical Details `<details>` + Next Step spanning full-width. Cards reuse the `.pf-wc-card`
+   sunk surface; ④ ("Why LLS?") is emphasised as the key lesson. Single column under 760px. */
+.pf-lls-compare {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+/* Head row: the view caption on the left, the view toggle on the right (mirrors the
+   Find-Local-Maxima distribution head). */
+.pf-lls-compare-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.pf-lls-views { flex: 0 0 auto; }
+.pf-lls-panel-cap {
+  margin: 0; /* it's a <p> now (was a <figcaption>): drop the default paragraph margin so the
+                LLS/Inverse-LLS "chart type" toolbar is the same height as the reference Linear/Log one */
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-lls-panel-cap .muted { text-transform: none; letter-spacing: 0; font-weight: 500; }
+/* The single chart fills the standard `.step-chartwrap` (340px) so it matches the earlier
+   continuum stages; the figure's own gap spaces it from the head, so drop its bottom margin. */
+.pf-lls-single-chartwrap { margin-bottom: 0; }
+.pf-lls-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  align-items: stretch;
+}
+.pf-lls-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-lls-card-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-lls-why, .pf-lls-next { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); }
+.pf-lls-stats { margin: 0; }
+/* Card ④ emphasis: the key lesson gets an accent left border, a lifted surface, and a heavier,
+   ink-coloured title -- matching the sibling Working Copy stage's `--why` card. */
+.pf-lls-card--why {
+  border-color: var(--accent);
+  border-left-width: 3px;
+  background: var(--surface);
+}
+.pf-lls-card--why .pf-lls-card-title { color: var(--accent-ink); }
+.pf-lls-card--why .pf-lls-why { font-size: 13px; text-align: justify; }
+/* Mathematical Details + Next Step span the full grid width. The `<details>` is collapsed by
+   default (no `open` attribute); native disclosure needs no JS. */
+.pf-lls-math, .pf-lls-card--next { grid-column: 1 / -1; }
+.pf-lls-math { padding: 0; gap: 0; }
+.pf-lls-math-summary {
+  padding: var(--space-3);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  list-style: none;
+}
+.pf-lls-math-summary::-webkit-details-marker { display: none; }
+.pf-lls-math-summary::before {
+  content: '▾';
+  display: inline-block;
+  margin-right: var(--space-2);
+  transition: transform 0.15s ease;
+}
+.pf-lls-math[open] .pf-lls-math-summary::before { transform: rotate(180deg); }
+.pf-lls-math-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-lls-math-body { padding: 0 var(--space-3) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.pf-lls-equation {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  color: var(--accent-ink);
+  padding: 8px 10px;
+  background: var(--surface-sunk);
+  border-radius: var(--radius-control);
+}
+.pf-lls-math-note { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); }
+.pf-lls-math-note strong { color: var(--accent-ink); }
+@media (max-width: 760px) { .pf-lls-cards { grid-template-columns: 1fr; } }
+/* Inverse LLS Transform stage (cont-invlls): the mirror of the LLS stage -- it reuses the
+   `.pf-lls-*` twin-chart + card classes verbatim so the two read as a matched pair. Only the ⑥
+   "Continuum Estimation Progress" workflow card needs its own layout: a compact vertical step list
+   with the completed processing stages ticked (accent-filled) and the final "Background Ready"
+   state ringed + emphasised. Additive -- no `.pf-lls-*` rule is altered. */
+.pf-invlls-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-invlls-step {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--muted);
+}
+.pf-invlls-step::before {
+  content: '';
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border-strong);
+  background: var(--surface);
+}
+.pf-invlls-step.is-done { color: var(--text); }
+.pf-invlls-step.is-done::before {
+  content: '✓';
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--surface);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.pf-invlls-step.is-current { color: var(--accent-ink); font-weight: 600; }
+.pf-invlls-step.is-current::before { border-color: var(--accent); border-width: 2px; }
+/* Net Spectrum stage (cont-net): the pay-off page of the continuum pipeline. Reuses the `.pf-lls-*`
+   card family + `.pf-cont-legend`/`.pf-cont-series` interactive toggles verbatim; the only new UI is
+   the Raw/Background/Net comparison chart (a touch taller than the twin siblings -- this is the
+   payoff) and the vertical "Visual Relationship" flow. `.pf-ns-*` namespace only -- `.pf-net-*` is
+   the net-SG input toggle, do NOT collide. */
+.pf-ns-compare {
+  display: flex;
+  flex-direction: column;
+  /* --space-2 so the chart->legend gap matches the graph-type toolbar's gap above the chart
+     (this flex gap, not a margin, is what spaces the legend here). */
+  gap: var(--space-2);
+  margin: 0 0 var(--space-3);
+}
+/* The legend's gap comes from the flex `gap` above, so cancel the shared chart->legend margin. */
+.pf-ns-compare > .pf-cont-legend { margin-top: 0; }
+.pf-ns-chartwrap { height: 260px; margin-bottom: 0; cursor: default; }
+/* Visual Relationship (⑧): a vertical step list joined by downward connectors (▼). Mirrors the
+   `.pf-invlls-steps` muted → text treatment but as boxed labels with connectors between them. */
+.pf-ns-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.pf-ns-flow-step {
+  text-align: center;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text);
+  padding: 6px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+.pf-ns-flow-conn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1;
+  padding: 3px 0;
+}
+/* SNIP Peak Clipping stage (cont-snip): reuses the `.pf-lls-*` twin-chart + card family verbatim
+   (so all four continuum teaching stages read as a matched set). Mathematical Details + Next Step
+   span the full grid width. */
+.pf-snip-conv-note { margin: 0; font-size: 12px; line-height: 1.5; }
+/* SG redesign: read-only "input in use" note on the continuum stage + the mandatory scope
+   disclaimer on the Savitzky-Golay stage. */
+.pf-cont-inputnote { margin: 0 0 var(--space-3); font-size: 12.5px; line-height: 1.5; }
+.pf-sg-disclaimer {
+  margin: var(--space-3) 0 0; padding: 10px 12px;
+  border-left: 3px solid var(--accent); background: var(--surface-sunk);
+  border-radius: var(--radius-control); font-size: 12.5px; line-height: 1.5;
+}
+.pf-sg-disclaimer strong { color: var(--accent-ink); }
+/* Divider between the scope note and the parameter/effect grid: a hairline rule with a
+   centred caption pointing the user to the controls below. */
+.pf-sg-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-3);
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+.pf-sg-divider::before,
+.pf-sg-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* SG "Effect of Smoothing" decision grid: three responsive cards — the SG param panel plus
+   two derived metric cards (Effect / Comparison) — that reflow 3-up → 2-up → 1-up by width
+   (auto-fit, no dead gap). Equal-fraction auto rows stretch every card to the tallest, so the
+   containers stay uniform whether on one row or wrapped. The processing note + Continue choice
+   are full-width blocks BELOW the grid (they caption the whole decision, not one card). */
+.pf-sg-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  align-items: stretch;
+  grid-auto-rows: 1fr;
+}
+/* All three grid children share one sunk-card surface so they read as one set: the param
+   panel (unpacked), the Effect card, and the Comparison card. */
+.pf-sg-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-sg-card--params { gap: var(--space-2); }
+.pf-sg-card-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-sg-metrics { display: flex; flex-direction: column; gap: var(--space-2); }
+.pf-sg-metric { display: flex; flex-direction: column; gap: 2px; }
+.pf-sg-metric-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-2); }
+.pf-sg-metric-label { font-size: 12px; color: var(--muted); }
+.pf-sg-metric-value { font-size: 14px; font-weight: 600; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; }
+.pf-sg-metric-detail { font-size: 11px; color: var(--faint); font-variant-numeric: tabular-nums; }
+/* Thin meter (reuses the `.cal-resid` bar idiom) for the noise-reduction fraction. */
+.pf-sg-meter { height: 6px; border-radius: 999px; background: var(--surface); border: 1px solid var(--border); overflow: hidden; margin-top: 2px; }
+.pf-sg-meter-fill { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+/* Choice is a full-width block. On the raw SG stage it follows the legend directly; tighten
+   that gap so it balances the ~12px rhythm of the rows below (the legend already contributes
+   an 8px bottom margin). */
+.pf-sg-choice { margin-top: var(--space-3); }
+.pf-cont-legend + .pf-sg-choice { margin-top: var(--space-1); }
+
+/* SG stage scroll cue: a gentle "more below" affordance pinned to the bottom edge of the
+   `.step-main` viewport (which IS the scroller). A zero-height sticky shell so it never
+   inflates the clip measurement; the visible chip is an absolutely-positioned child painting
+   a soft bottom gradient + a centred downward chevron and label. Hidden until JS adds
+   `.is-visible` (content clipped AND scrolled to top); pointer-events only on the button. */
+.pf-sg-scrollcue {
+  position: sticky;
+  bottom: 0;
+  height: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+.pf-sg-scrollcue-btn {
+  position: absolute;
+  left: 0;
+  right: 0;
+  /* Pull the box down through `.step-main`'s bottom padding so the solid band sits flush against
+     the footer toolbar (a sibling below the scroll area) -- otherwise it ends `--space-4` short and
+     the gradient's bottom edge shows as a hard line mid-page. The bottom padding grows by the same
+     amount so the label + chevron keep their original height above the fold. */
+  bottom: calc(-1 * var(--space-4));
+  /* Stacked: label on the first row, chevron on the second -- both centred. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  width: 100%;
+  padding: 44px 0 calc(10px + var(--space-4));
+  border: 0;
+  /* A more assertive fade so the cue reads over a busy chart/card: the solid band reaches
+     ~40% before dissolving, and it carries a faint accent-weak tint (not bare bg) so the
+     gradient is actually visible over the paper background. */
+  background: linear-gradient(to top,
+    var(--bg) 40%,
+    var(--accent-weak) 60%,
+    transparent);
+  color: var(--accent);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 160ms ease, transform 160ms ease;
+  pointer-events: none;
+}
+.pf-sg-scrollcue.is-visible .pf-sg-scrollcue-btn { opacity: 1; transform: none; pointer-events: auto; }
+.pf-sg-scrollcue-chevron { font-size: 18px; line-height: 1; color: var(--accent); animation: pf-sg-cue-bob 1.4s ease-in-out infinite; }
+.pf-sg-scrollcue-btn:hover { color: var(--accent-ink); }
+.pf-sg-scrollcue-btn:hover .pf-sg-scrollcue-chevron { color: var(--accent-ink); }
+.pf-sg-scrollcue-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@keyframes pf-sg-cue-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(3px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pf-sg-scrollcue-btn { transition: none; }
+  .pf-sg-scrollcue-chevron { animation: none; }
+}
+
+/* Peak tables (P2): five-column funnel reusing .review-table, restyled into the
+   v3 card idiom -- uppercase title, tabular figures, hairline rows. */
+.pf-table-section { margin-top: var(--space-3); }
+/* #7 view-only sort toolbar: reuse `.step-charttoolbar` + `.toggle-group`, but group the
+ * label + toggle at the left (the shared rule is space-between for the chart toolbar). This
+ * is the shared sort+filter container #8 extends. */
+.pf-table-toolbar { justify-content: flex-start; gap: var(--space-2); margin-top: var(--space-3); }
+.pf-table-toolbar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; }
+.pf-table-title { margin: 0 0 var(--space-2); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+.pf-count-strip { margin: 0 0 var(--space-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+/* Empty pre-detection state in the v3 `.step-cp-empty` idiom (dashed, sunk). */
+.pf-table-empty { margin: 0; font-size: 12px; color: var(--faint); line-height: 1.5; border: 1px dashed var(--border-strong); border-radius: var(--radius-control); padding: 10px 12px; background: var(--surface-sunk); }
+.pf-table { font-variant-numeric: tabular-nums; }
+.pf-row { cursor: pointer; }
+.pf-row:hover td { background: rgba(15, 110, 86, 0.04); }
+.pf-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.pf-row.is-selected td { background: rgba(15, 110, 86, 0.10); }
+.pf-row--drop .pf-result { color: var(--warn-text); }
+.pf-row--pass .pf-result { color: var(--accent); }
+.pf-expand {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 6px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+}
+.pf-expand:focus-visible { outline: 2px solid var(--accent); border-radius: 3px; }
+.pf-detail td { background: var(--surface); }
+.pf-detail-item { display: inline-block; margin-right: var(--space-3); font-size: 12px; }
+.pf-detail-k {
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-right: 4px;
+}
+.pf-detail-fate { display: block; margin-top: 4px; font-size: 12px; }
+.pf-summary { margin: 0 0 var(--space-3); }
+.pf-settings { margin-top: var(--space-3); }
+
+/* --- Peak Finder (P3): honest state surface -----------------------------------
+   The state-aware Review outcome block. A left accent rail keyed on the four
+   status states; the same state palette the br-status chips use, muted so the
+   summary/table below stay the focus. */
+.pf-state {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border);
+  background: var(--surface);
+  border-radius: 0 var(--radius-card, 10px) var(--radius-card, 10px) 0;
+}
+.pf-state-title { margin: 0; font-size: 14px; color: var(--text); font-weight: 500; }
+.pf-state-detail { margin: 4px 0 0; font-size: 12.5px; }
+.pf-state--healthy { border-left-color: var(--accent); }
+.pf-state--anomaly { border-left-color: var(--warn-text); }
+.pf-state--empty { border-left-color: var(--muted); }
+.pf-state--failure { border-left-color: #b03a2e; }
+.sm-help { margin: var(--space-2) 0 0; font-size: 12.5px; }
+
+/* "Find Local Maxima" stage (run-0) educational redesign: the same chart + candidate table as
+   every Run stage, wrapped with a teaching card grid. PF-local `.pf-lm-*` only -- it reuses the
+   `.cfg-recap` stat grid + the `.toggle-group` toggle idiom + the `.pf-lls-*` card conventions
+   (matched look) without touching them. Additive; no shared rule changed. */
+.pf-lm { display: flex; flex-direction: column; }
+/* Chart legend directly below the stage chart (uniform legend position across peak-finding
+   charts): a stroke swatch for the detection spectrum + a tick swatch for the candidate markers. */
+.pf-lm-legend { display: flex; flex-wrap: wrap; gap: var(--space-3); margin: var(--space-2) 0 0; }
+.pf-lm-swatch { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text); }
+.pf-lm-swatch-mark { display: inline-block; }
+.pf-lm-swatch-mark--line { width: 16px; height: 0; border-top: 2px solid #6b6a63; }
+.pf-lm-swatch-mark--tick { width: 2px; height: 12px; background: rgba(107, 106, 99, 0.6); }
+/* Two-up card rows (collapse to one column on narrow). */
+.pf-lm-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  align-items: stretch;
+}
+.pf-lm-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-lm-card-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-lm-prose { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); }
+.pf-lm-prose strong { color: var(--accent-ink); }
+/* PF teaching report (Find Local Maxima + Distance Gate): justify the teaching prose to match the
+   Final Review report treatment. Scoped to the `--report` wrapper the report-formatted stages set. */
+.pf-lm--report .pf-lm-prose { text-align: justify; hyphens: auto; }
+/* Candidate Distribution card: title + view toggle on one row, then the bespoke canvas. */
+.pf-lm-card--dist { gap: var(--space-3); }
+.pf-lm-dist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.pf-lm-distviews { flex: 0 0 auto; }
+.pf-lm-dist-chartwrap { width: 100%; }
+.pf-lm-dist-chart { display: block; width: 100%; height: 150px; }
+.pf-lm-dist-hint { margin: 0; font-size: 12px; line-height: 1.5; }
+/* Mathematical Details: full-width collapsed <details>, mirroring `.pf-lls-math`. */
+.pf-lm-math { margin: var(--space-3) 0 0; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-sunk); }
+.pf-lm-math-summary {
+  padding: var(--space-3);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  list-style: none;
+}
+.pf-lm-math-summary::-webkit-details-marker { display: none; }
+.pf-lm-math-summary::before { content: '▾'; display: inline-block; margin-right: var(--space-2); transition: transform 0.15s ease; }
+.pf-lm-math[open] .pf-lm-math-summary::before { transform: rotate(180deg); }
+.pf-lm-math-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-lm-math-body { padding: 0 var(--space-3) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.pf-lm-equation {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  color: var(--accent-ink);
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: var(--radius-control);
+}
+@media (max-width: 760px) { .pf-lm-grid { grid-template-columns: 1fr; } }
+
+/* --- Distance Gate stage (`distance` / run-1): the first filtering-stage card grid. PF-local,
+   additive; reuses `.pf-lm-*` for the card shell + only these `.pf-dist-*` extras. Accepted /
+   rejected colours reuse the stage chart's ALIVE (rgba(15,110,86,.5)) / STRUCK (rgba(154,59,59,.55))
+   tick values verbatim so the visual filtering language matches `drawPfStage`. No new colours. */
+.pf-dist-swatch-mark--alive { background: rgba(15, 110, 86, 0.5); }
+.pf-dist-swatch-mark--struck { background: rgba(154, 59, 59, 0.55); }
+/* §3 Before-vs-After count bars: the fill grows from 0 (scaleX) on mount, animating with the
+   held re-render; static under reduced motion. */
+.pf-dist-bars { display: flex; flex-direction: column; gap: var(--space-2); }
+.pf-dist-bar-row { display: grid; grid-template-columns: 68px 1fr auto; align-items: center; gap: var(--space-2); }
+.pf-dist-bar-label { font-size: 12px; color: var(--muted); }
+.pf-dist-bar-track { position: relative; height: 14px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-control); overflow: hidden; }
+.pf-dist-bar-fill { position: absolute; top: 0; left: 0; bottom: 0; transform-origin: left center; animation: pf-dist-grow 0.8s ease both; }
+.pf-dist-bar-fill--enter { background: rgba(107, 106, 99, 0.35); }
+.pf-dist-bar-fill--pass { background: rgba(15, 110, 86, 0.5); }
+.pf-dist-bar-val { font-size: 12px; font-variant-numeric: tabular-nums; color: var(--text); }
+.pf-dist-bar-removed { margin: 6px 0 0; font-size: 11.5px; }
+@keyframes pf-dist-grow { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@media (prefers-reduced-motion: reduce) { .pf-dist-bar-fill { animation: none; } }
+/* §7 Candidate Comparison: rejected vs winner emphasis, in the chart's tick colours. */
+.pf-dist-compare { display: grid; grid-template-columns: 1fr auto 1fr; align-items: stretch; gap: var(--space-2); }
+.pf-dist-compare-cell { display: flex; flex-direction: column; gap: 2px; padding: var(--space-2); border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface); text-align: center; }
+.pf-dist-compare-cell--rejected { border-color: rgba(154, 59, 59, 0.55); }
+.pf-dist-compare-cell--winner { border-color: rgba(15, 110, 86, 0.5); }
+.pf-dist-compare-role { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.pf-dist-compare-cell--rejected .pf-dist-compare-role { color: rgb(154, 59, 59); }
+.pf-dist-compare-cell--winner .pf-dist-compare-role { color: var(--accent-ink); }
+.pf-dist-compare-ch { font-size: 14px; font-weight: 600; color: var(--text); }
+.pf-dist-compare-h { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.pf-dist-compare-vs { align-self: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+.pf-dist-hint { margin: 6px 0 0; font-size: 11.5px; }
+/* Distance-rejected table rows echo the struck tick colour on the Result cell. */
+.pf-dist-row.pf-row--drop .pf-result { color: rgb(154, 59, 59); }
+
+/* --- Workflow boundary (2026-07-07): the rail appendix + teaching pages for the locked downstream
+   stages (Energy Calibration · Radionuclide Identification · Quantification). PF-local, additive;
+   the rail rows reuse the `.step-film-item` chrome, so only these extras are new. --- */
+.pf-rail-divider { display: flex; align-items: center; gap: var(--space-2); margin: var(--space-2) 0 var(--space-1); padding: 0 var(--space-2); }
+.pf-rail-divider::before, .pf-rail-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.pf-rail-divider span { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap; }
+/* Locked-but-clickable rows: muted like a locked step, but with a hover/focus affordance (they
+   open a page, unlike the inert pipeline `locked` rows). */
+.pf-boundary { color: var(--muted); cursor: pointer; }
+.pf-boundary .step-film-num { color: var(--muted); }
+.pf-boundary:hover, .pf-boundary:focus-visible { color: var(--text); background: var(--surface); }
+.pf-boundary.current { color: var(--text); background: var(--surface); }
+.pf-boundary-lock-pill { display: inline-block; margin-left: var(--space-2); padding: 1px 8px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); background: var(--surface); border: 1px solid var(--border-strong); border-radius: 999px; vertical-align: middle; }
+/* Teaching page layout. */
+.pf-boundary-page { display: flex; flex-direction: column; gap: var(--space-3); }
+.pf-boundary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+@media (max-width: 900px) { .pf-boundary-grid { grid-template-columns: 1fr; } }
+.pf-boundary-card { padding: var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface); }
+.pf-boundary-card-title { margin: 0 0 var(--space-2); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent-ink); }
+.pf-boundary-why { margin: 0; font-size: 13px; color: var(--text); text-align: justify; }
+.pf-boundary-reqs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.pf-boundary-req { display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: var(--space-2); font-size: 12.5px; }
+.pf-boundary-req-glyph { font-size: 12px; }
+.pf-boundary-req--done .pf-boundary-req-glyph { color: rgb(15, 110, 86); }
+.pf-boundary-req--wait .pf-boundary-req-glyph { color: var(--muted); }
+.pf-boundary-req--todo .pf-boundary-req-glyph { color: var(--border-strong); }
+.pf-boundary-req-label { color: var(--text); }
+.pf-boundary-req-note { font-size: 11px; color: var(--muted); }
+.pf-boundary-callout { padding: var(--space-3); border-left: 3px solid var(--accent); background: var(--surface); border-radius: var(--radius-control); font-size: 13px; color: var(--text); }
+.pf-boundary-actions { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.pf-boundary-soon { font-size: 11.5px; color: var(--muted); font-style: italic; }
+.pf-boundary-back { margin-left: auto; }
+
+/* --- Peak Fitting stage (`fit` / run-6): the culmination-stage card grid. PF-local, additive;
+   mirrors `.pf-lm-*` but for the single-selected-peak measurement page. `.cfg-recap` (shared)
+   styles the label/value pairs inside each card. --- */
+.pf-fit { display: flex; flex-direction: column; }
+/* Decomposition-overlay toggles below the chart (P3): the shared segmented `.toggle-group`
+   idiom, allowed to wrap so the five series buttons never clip on a narrow panel. */
+.pf-fit-overlays { margin: var(--space-2) 0 0; flex-wrap: wrap; width: fit-content; max-width: 100%; }
+/* Each overlay toggle carries a colour swatch (the chart legend): align it before the label. */
+.pf-fit-overlay { display: inline-flex; align-items: center; gap: 0.4em; }
+.pf-fit-overlay .pf-cont-swatch { width: 10px; height: 10px; }
+.pf-fit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-4);
+  margin: var(--space-3) 0 0;
+  align-items: stretch;
+}
+.pf-fit-card {
+  padding: var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  background: var(--surface-sunk);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.pf-fit-card-title {
+  margin: 0;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+.pf-fit-prose { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--text); text-align: justify; hyphens: auto; }
+.pf-fit-prose strong { color: var(--accent-ink); }
+/* Residual Analysis card (P4): the residual chart sits above the RMS + teaching copy. Its own
+   short canvas, full card width, drawn by `drawPfFitResidual` (linear, zero-baseline). */
+.pf-fit-residual-chartwrap { width: 100%; }
+.pf-fit-residual-chart { display: block; width: 100%; height: 140px; }
+/* Uniform boxes: every fit card is the same neutral sunk card -- the former accent-white
+   emphasis (Peak Measurements `--why`, Why-Gaussian `--edu`) and the Next-Step `--next` margin
+   offset were dropped so the report reads as evenly-weighted chapters (mirrors Detected Peaks). */
+/* Processing Integrity: a checklist of confirmed workflow invariants. */
+.pf-fit-checklist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pf-fit-checklist li { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--text); }
+.pf-fit-checklist li::before { content: '✓'; color: var(--accent-ink); font-weight: 700; }
+/* Mathematical Details: full-width collapsed <details>, mirroring `.pf-lm-math`. */
+.pf-fit-math { margin: var(--space-3) 0 0; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius-control); background: var(--surface-sunk); }
+.pf-fit-math-summary {
+  padding: var(--space-3);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  list-style: none;
+}
+.pf-fit-math-summary::-webkit-details-marker { display: none; }
+.pf-fit-math-summary::before { content: '▾'; display: inline-block; margin-right: var(--space-2); transition: transform 0.15s ease; }
+.pf-fit-math[open] .pf-fit-math-summary::before { transform: rotate(180deg); }
+.pf-fit-math-summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pf-fit-math-body { padding: 0 var(--space-3) var(--space-3); display: flex; flex-direction: column; gap: var(--space-2); }
+.pf-fit-equation {
+  margin: 0;
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 13px;
+  color: var(--accent-ink);
+  padding: 8px 10px;
+  background: var(--surface);
+  border-radius: var(--radius-control);
+}
+.pf-fit-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); text-align: justify; hyphens: auto; }
+@media (max-width: 760px) { .pf-fit-grid { grid-template-columns: 1fr; } }
+
+/* --- Native MathML typography (ui/mathml.ts) ------------------------------------------------
+   Every per-step teaching formula is real typeset math (italic variables, raised exponents,
+   fraction bars, √ radicals). The `.pf-math` root carries a serif math-font stack and inherits
+   the accent-ink colour of whichever equation box / prose it sits in, so one rule styles the
+   formula on EVERY step. Block formulas centre in their padded card; inline formulas sit on the
+   prose baseline. The equation containers keep their box (padding / surface / radius); their old
+   monospace font-family no longer matters since the math overrides it. */
+.pf-math {
+  font-family: "STIX Two Math", "Latin Modern Math", "Cambria Math", "Asana Math", Georgia, serif;
+  font-size: 1.18em;
+  color: inherit;
+  line-height: normal;
+}
+.pf-math--inline { font-size: 1.06em; }
+.pf-fit-equation, .pf-lls-equation, .pf-lm-equation { text-align: center; }
+.pf-fit-equation .pf-math, .pf-lls-equation .pf-math, .pf-lm-equation .pf-math { display: inline-block; }
+/* Let a long block formula scroll rather than overflow its card on a narrow viewport. */
+.pf-fit-equation, .pf-lls-equation, .pf-lm-equation { overflow-x: auto; }
+
+/* --- Validate Peaks stage (`validated` / run-7): the quality-control card grid. PF-local,
+   additive; reuses the `.pf-fit-*` card shell + `.cfg-recap`, adding only the validation-specific
+   status badge, checklist glyphs, funnel line, and the report/rules tables. No invented colours --
+   accent = pass, the `--warn-text` family = flag/fail, `--muted` = empty state. --- */
+.pf-val-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.pf-val-status--pass { color: var(--accent-ink); background: rgba(15, 110, 86, 0.12); }
+.pf-val-status--fail { color: var(--warn-text); background: rgba(122, 91, 18, 0.12); }
+.pf-val-status--none { color: var(--muted); background: var(--surface-sunk); }
+/* Summary card takes a warning left-border + faint tint when the selected peak is flagged. */
+.pf-val-card--flagged { border-color: var(--warn-text); border-left-width: 3px; background: rgba(122, 91, 18, 0.05); }
+/* Validation Checklist -- the centrepiece: one row per rolled-up rule, glyph + rule + fail chip. */
+.pf-val-checklist { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.pf-val-check { display: flex; align-items: baseline; gap: 8px; font-size: 12.5px; color: var(--text); }
+.pf-val-check-glyph { flex: 0 0 auto; font-size: 12px; font-weight: 700; line-height: 1.4; }
+.pf-val-check--pass .pf-val-check-glyph { color: var(--accent-ink); }
+.pf-val-check--fail .pf-val-check-glyph { color: var(--warn-text); }
+.pf-val-check-rule { flex: 0 1 auto; }
+.pf-val-check--fail .pf-val-check-rule { color: var(--warn-text); }
+/* Merged-in explanation (formerly the separate Validation Report table): muted, right-aligned so
+   the rule reads on the left and its plain-language reason on the right of the same row. */
+.pf-val-check-explanation { flex: 1 1 auto; text-align: right; color: var(--muted); font-size: 11.5px; }
+.pf-val-check--fail .pf-val-check-explanation { color: var(--warn-text); }
+.pf-val-check-detail {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border-radius: var(--radius-control);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warn-text);
+  background: rgba(122, 91, 18, 0.12);
+}
+/* Statistics funnel: a quiet one-liner under the recap showing the upstream drop-off (D-2). */
+.pf-val-funnel { margin: var(--space-2) 0 0; font-size: 11.5px; }
+/* Validation Report + Rules tables reuse `.review-table`; tighten cells + centre the status glyph. */
+.pf-val-report-card { gap: var(--space-2); margin-top: var(--space-3); }
+.pf-val-report td, .pf-val-report th,
+.pf-val-rules td, .pf-val-rules th { padding: 5px 8px; font-size: 12px; }
+.pf-val-report-status { text-align: center; font-weight: 700; }
+.pf-val-report-row--pass .pf-val-report-status { color: var(--accent-ink); }
+.pf-val-report-row--fail td { color: var(--warn-text); background: rgba(122, 91, 18, 0.05); }
+.pf-val-report-row--fail .pf-val-report-status { color: var(--warn-text); }
+
+/* --- Batch Peak Finder (mode home: config header + status-first queue) ------ */
+.batch { display: flex; flex-direction: column; gap: var(--space-4); max-width: 900px; }
+
+.batch-config {
+  color: var(--muted);
+  font-size: 12px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-3);
+}
+
+.batch-import {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+}
+.batch-import__label {
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent-weak);
+  border-radius: var(--radius-control);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+.batch-import__input { margin-left: var(--space-2); font-size: 12px; }
+.batch-import__hint { color: var(--faint); font-size: 12px; }
+
+.batch-summary { display: flex; flex-direction: column; gap: var(--space-2); }
+.batch-summary__counts { color: var(--muted); font-size: 12px; }
+.batch-summary__counts strong { color: var(--text); }
+.batch-summary__bar {
+  height: 6px;
+  background: var(--surface-sunk);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.batch-summary__fill { height: 100%; background: var(--accent); transition: width 0.2s ease; }
+
+.batch-controls { display: flex; gap: var(--space-2); }
+.batch-control {
+  font: inherit;
+  font-weight: 600;
+  color: var(--surface);
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-control);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+}
+.batch-control[data-action='pause'],
+.batch-control[data-action='retry-all'] {
+  color: var(--text);
+  background: var(--surface);
+  border-color: var(--border-strong);
+}
+
+.batch-queue { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.batch-empty {
+  color: var(--faint);
+  padding: var(--space-5);
+  text-align: center;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-card);
+}
+
+.batch-row {
+  display: grid;
+  grid-template-columns: 18px 72px 1fr auto auto auto auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+}
+.batch-row__glyph { font-size: 14px; text-align: center; color: var(--faint); }
+.batch-row__status { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+.batch-row__name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.batch-row__peaks { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.batch-row__warn { color: var(--warn-text); font-size: 12px; }
+.batch-row__error { color: var(--muted); font-size: 12px; font-family: var(--font-mono); }
+.batch-row__badge {
+  font-size: 11px;
+  color: var(--accent-ink);
+  background: var(--accent-weak);
+  border-radius: 999px;
+  padding: 1px var(--space-2);
+  white-space: nowrap;
+}
+.batch-row__actions { display: flex; gap: var(--space-1); justify-self: end; }
+.batch-row__action {
+  font: inherit;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control);
+  padding: 2px var(--space-2);
+  cursor: pointer;
+}
+
+/* status accents (light-only: teal = good, amber = warning, faint = idle/removed) */
+.batch-row--done .batch-row__glyph,
+.batch-row--running .batch-row__glyph { color: var(--accent); }
+.batch-row--done .batch-row__status,
+.batch-row--running .batch-row__status { color: var(--accent-ink); }
+.batch-row--warning { background: var(--warn-bg); border-color: var(--warn-border); }
+.batch-row--warning .batch-row__glyph,
+.batch-row--warning .batch-row__status { color: var(--warn-text); }
+.batch-row--failed .batch-row__glyph,
+.batch-row--failed .batch-row__status { color: var(--text); }
+.batch-row--failed { border-color: var(--border-strong); }
+.batch-row--excluded { opacity: 0.6; }
+.batch-row--excluded .batch-row__name { text-decoration: line-through; }
+
+/* Calibrate -- focused Assign-energies view (2026-07-07 pager redesign): one source at a
+   time via a prev/next pager, graph-on-top, then a row of peak cards. Reuses `.br-status`
+   + `.select`; only this scaffold is new. */
+.di-assign-view { display: flex; flex-direction: column; gap: var(--space-3); }
+.di-pager { display: flex; align-items: center; justify-content: center; gap: var(--space-3);
+  padding-bottom: var(--space-2); border-bottom: 1px solid var(--border); }
+.di-pager-btn { width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center;
+  font-size: 18px; line-height: 1; background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-control); color: var(--text); cursor: pointer; }
+.di-pager-btn:disabled { opacity: 0.4; cursor: default; }
+.di-pager-label { font-weight: 600; }
+.di-pager-count { font-size: 12px; }
+.di-src-head { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+.di-src-head .br-file { font-weight: 600; }
+.di-src-head .br-identity { margin-left: auto; }
+.di-graph { width: 100%; }
+.di-graph-canvas { width: 100%; height: 220px; display: block; }
+.di-legend { display: flex; gap: var(--space-4); font-size: 11px; color: var(--muted); }
+.di-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.di-key { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+.di-key--o { background: transparent; border: 1.5px solid var(--muted); }
+.di-pcards { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.di-pcard { flex: 1 1 150px; min-width: 0; display: flex; flex-direction: column; gap: 6px;
+  padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-control);
+  background: var(--surface); cursor: pointer; }
+.di-pcard--sel { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.di-pcard-ch { display: flex; align-items: center; gap: 7px; font-size: 13px; font-variant-numeric: tabular-nums; }
+.di-pcard-sig { font-size: 12px; }
+.di-pcard .di-assign { width: 100%; }
+.di-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 9px; background: var(--muted); }
+.di-dot--assigned { background: #1D9E75; }
+.di-dot--sel { background: #378ADD; }
+.di-dot--unassigned { background: transparent; border: 1.5px solid var(--muted); }
+.di-dot--excluded { background: var(--border-strong); }
+.di-total { font-size: 12px; }
+
+/* --- Peak Finder FINAL REVIEW page (`review` / "Detected Peaks"): the consolidated scientific
+   report. Additive + PF-local; reuses `.pf-fit-*` (card grid/shell), `.cfg-recap` (stat pairs),
+   `.review-table`/`.pf-table` (tables), `.pf-boundary-req*` (requirements), and `.pf-val-row`
+   (accepted/flagged row colouring). Only the report-specific chrome below is new. --- */
+.pf-review-overlay { display: inline-flex; align-items: center; gap: 0.4em; }
+/* The hero caption is a STANDALONE connective sentence between the chart group and the table group
+   -- not a chart footnote. Equal space above and below (so it belongs to neither group), justified
+   text. Zeroing the following table block's top margin keeps the below-gap equal to the above-gap. */
+.pf-review-hero-caption,
+.pf-stage-caption {
+  margin: var(--space-4) 0; font-size: 12.5px; line-height: 1.55; color: var(--muted); text-align: justify;
+}
+.pf-review-hero-caption + .pf-tableblock,
+.pf-stage-caption + .pf-tableblock,
+.pf-stage-caption + .pf-fit-grid { margin-top: 0; }
+/* Validate Peaks stage: match the Detected-Peaks report formatting -- justified prose + notes. */
+.pf-val .pf-fit-prose,
+.pf-val .pf-fit-note { text-align: justify; }
+/* Section divider: a horizontal rule with a centred caption naming the content that follows, so the
+   stacked report reads as clearly-separated chapters. The pseudo-element rules flank the label. */
+.pf-review-divider { display: flex; align-items: center; gap: var(--space-3); margin: var(--space-4) 0 var(--space-1); }
+.pf-review-divider::before, .pf-review-divider::after { content: ''; flex: 1 1 auto; height: 1px; background: var(--border-strong); }
+.pf-review-divider-label {
+  flex: 0 0 auto; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--muted); white-space: nowrap;
+}
+/* Justify the report body prose (Processing Report / Educational Summary / Energy Calibration /
+   Export blurb / Adjust hint) -- scoped to `.pf-review` so other stages' prose stays left-aligned. */
+.pf-review .pf-fit-prose,
+.pf-review .pf-fit-note,
+.pf-review .pf-review-adjust-hint { text-align: justify; }
+/* Peak Quality Summary: a compact two-column tally; colour the classification cell by class. */
+.pf-review-quality-table { width: auto; min-width: 240px; }
+.pf-review-quality-table td, .pf-review-quality-table th { padding: 5px 12px; font-size: 12.5px; }
+.pf-review-quality-row--line td:first-child { color: var(--accent-ink); font-weight: 600; }
+.pf-review-quality-row--broad td:first-child,
+.pf-review-quality-row--weak td:first-child { color: var(--warn-text); }
+/* Final peak table: the Remarks column reads as quiet secondary prose. */
+.pf-review-remark { color: var(--muted); font-size: 12px; }
+.pf-review-table .pf-row--drop .pf-review-remark { color: var(--warn-text); }
+/* Export section: a left-aligned row of buttons that wrap on a narrow panel. Every action button
+   on the page (exports + the Calibration CTA) shares one uniform size + placement -- see the
+   shared `.pf-review-export-btn, .pf-review-cta` rule below. */
+.pf-review-export-actions { display: flex; flex-wrap: wrap; gap: var(--space-2); margin-top: var(--space-1); }
+/* Next Step -- Energy Calibration, presented as the locked next stage. */
+.pf-review-nextstep { gap: var(--space-2); }
+.pf-review-nextstep-eyebrow {
+  font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.pf-review-nextstep-title { display: flex; align-items: center; gap: var(--space-2); font-size: 13px; }
+.pf-review-lock-pill {
+  display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 999px;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.03em;
+  color: var(--warn-text); background: rgba(122, 91, 18, 0.12);
+}
+.pf-review-req-title {
+  margin: var(--space-1) 0 0; font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.05em; color: var(--muted);
+}
+.pf-review-reqs { margin: 0; padding: 0; }
+.pf-review-endnote { color: var(--warn-text); }
+.pf-review-cta { align-self: flex-start; margin-top: auto; }
+.pf-review-cta[disabled] { opacity: 0.55; cursor: not-allowed; }
+/* The Calibration CTA is a single button: fixed min-width, centred label, never stretches. */
+.pf-review-cta { flex: 0 0 auto; min-width: 210px; justify-content: center; }
+/* Export buttons grow EQUALLY to fill the row when there is space (uniform thirds), and -- because
+   they never shrink below their 210px base -- wrap to full-width stacked buttons when the panel is
+   too narrow to hold all three. Centred labels keep them reading as one uniform set. */
+.pf-review-export-btn { flex: 1 0 210px; justify-content: center; }
+/* Close: the Educational-Summary / Energy-Calibration pair stretches to equal height; the CTA is
+   pushed to the card foot (margin-top:auto) so both boxes end on the same line. */
+.pf-review-close { align-items: stretch; }
+/* Adjust panel: align the two toggle rows so they start, split, and end at the SAME positions.
+   Fixed label column -> same start; fixed group width -> same end; equal-flex buttons -> the
+   divider falls at the group midpoint in both rows. Scoped to `.pf-review-adjust` so the continuum
+   input selector elsewhere keeps its content-width sizing. */
+.pf-review-adjust .pf-review-adjust-row { align-items: center; flex-wrap: nowrap; }
+.pf-review-adjust .pf-cont-selector-label { flex: 0 0 auto; min-width: 96px; }
+.pf-review-adjust .pf-cont-selector { flex: 0 0 auto; width: 100%; max-width: 460px; flex-wrap: nowrap; }
+.pf-review-adjust .pf-cont-selector > button { flex: 1 1 0; min-width: 0; text-align: center; justify-content: center; }
+/* Final-table block: group the sort/filter toolbar tight to the table it drives (mirrors the
+   `.pf-chartblock` toolbar→chart→legend grouping). Outer margin-top matches the other report
+   sections; internally the toolbar sits just `--space-2` above the table, with the section-gap
+   between them removed. */
+.pf-tableblock { display: flex; flex-direction: column; margin-top: var(--space-3); }
+.pf-tableblock .pf-table-toolbar { margin-top: 0; margin-bottom: var(--space-2); }
+.pf-tableblock .pf-table-section { margin-top: 0; }

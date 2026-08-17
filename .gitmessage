@@ -1,0 +1,18 @@
+# <type>(<optional scope>): <subject>   -- max ~50 chars, imperative mood, no trailing period
+#
+# Body (optional): wrap at 72 chars. Explain WHAT and WHY, not how.
+#
+# Footer (optional): BREAKING CHANGE: <desc>, or "Closes #123"
+#
+# Allowed types:
+#   feat     a new feature
+#   fix      a bug fix
+#   docs     documentation only
+#   style    formatting; no code-behavior change
+#   refactor neither fixes a bug nor adds a feature
+#   perf     a performance improvement
+#   test     adding or fixing tests
+#   build    build system or dependencies
+#   ci       CI configuration
+#   chore    other changes that don't touch src or tests
+#   revert   reverts a previous commit

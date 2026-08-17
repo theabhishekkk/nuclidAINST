@@ -1,0 +1,28 @@
+{
+  "name": "nuclid",
+  "private": true,
+  "version": "0.4.0",
+  "type": "module",
+  "description": "Browser-only gamma spectroscopy pipeline (TypeScript + Vite) -- v4 clean re-architecture.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "happy-dom": "^20.10.6",
+    "husky": "^9.1.7",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.0",
+    "vitest": "^1.6.0"
+  },
+  "dependencies": {
+    "ml-levenberg-marquardt": "5.0.1"
+  }
+}
